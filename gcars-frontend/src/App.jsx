@@ -13,7 +13,8 @@ function AdminLayout() {
   return (
     <div className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-red-600 selection:text-white">
       <Navbar />
-      <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
+      {/* pb-24 garante que nada fique escondido atrás da Bottom Bar no celular */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-8 pb-24 md:pb-8">
         <Routes>
           <Route path="/" element={<Digitalizar />} />
           <Route path="/buscar" element={<Buscador />} />
