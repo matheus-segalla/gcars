@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GCARS - Painel de Controle</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen text-gray-800">
+
+  <!-- Header -->
+  <header class="bg-slate-900 text-white p-4 shadow-md">
+    <div class="max-w-6xl mx-auto flex justify-between items-center">
+      <h1 class="text-xl font-bold tracking-wide">GCARS <span class="text-blue-400 font-normal">| Gestão de Orçamentos</span></h1>
+      <span class="text-xs bg-green-500 text-white px-2 py-1 rounded-full font-mono">API Conectada (http://127.0.0.1:8000)</span>
+    </div>
+  </header>
+
+  <!-- Navegação por Abas -->
+  <div class="max-w-6xl mx-auto mt-6 px-4">
+    <div class="flex border-b border-gray-300 gap-2">
+      <button id="tab-btn-1" onclick="switchTab('tab-digitalizar')" class="py-2 px-4 border-b-2 border-blue-600 font-semibold text-blue-600">
+        📷 1. Digitalizar Nota
+      </button>
+      <button id="tab-btn-2" onclick="switchTab('tab-buscar')" class="py-2 px-4 border-b-2 border-transparent text-gray-500 hover:text-blue-600 font-semibold">
+        🔍 2. Buscador de Notas
+      </button>
+      <button id="tab-btn-3" onclick="switchTab('tab-relatorio')" class="py-2 px-4 border-b-2 border-transparent text-gray-500 hover:text-blue-600 font-semibold">
+        📊 3. Fechamento Mensal
+      </button>
+    </div>
+
+    <!-- ABA 1: DIGITALIZAR E CONFIRMAR -->
+    <div id="tab-digitalizar" class="tab-content py-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Upload da Imagem -->
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <h2 class="text-lg font-bold mb-4 text-gray-700">1. Selecionar Foto</h2>
+          <input type="file" id="input-foto" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-4" />
+          
+          <button onclick="enviarParaIA()" id="btn-ia" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md font-semibold hover:bg-blue-700 transition flex justify-center items-center gap-2">
+            ✨ Ler Nota com IA
+          </button>
+
+          <div id="status-ia" class="mt-3 text-xs text-gray-500 text-center italic hidden">Processando imagem com Claude AI...</div>
+        </div>
+
+        <!-- Formulário de Conferência -->
+        <div class="md:col-span-2 bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <h2 class="text-lg font-bold mb-4 text-gray-700">2. Conferir e Salvar no Banco</h2>
+          
+          <form id="form-os" onsubmit="salvarOS(event)" class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+            <div>
+              <label class="block text-xs font-semibold text-gray-600">Nº Orçamento</label>
+              <input type="text" id="numero" class="w-full p-2 border rounded-md" required />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-600">Data</label>
+              <input type="text" id="data" class="w-full p-2 border rounded-md" required />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-600">Cliente</label>
+              <input type="text" id="cliente" class="w-full p-2 border rounded-md" required />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-600">Veículo</label>
+              <input type="text" id="veiculo" class="w-full p-2 border rounded-md" required />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-600">Placa</label>
+              <input type="text" id="placa" class="w-full p-2 border rounded-md" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-600">Cor</label>
+              <input type="text" id="cor" class="w-full p-2 border rounded-md" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-600">Ano</label>
+              <input type="text" id="ano" class="w-full p-2 border rounded-md" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-600">KM</label>
+              <input type="text" id="km" class="w-full p-2 border rounded-md" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-600">Forma Pagamento</label>
+              <input type="text" id="forma_pagamento" class="w-full p-2 border rounded-md" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-600">Peças (R$)</label>
+              <input type="number" step="0.01" id="pecas" class="w-full p-2 border rounded-md" value="0.00" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-600">Mão de Obra (R$)</label>
+              <input type="number" step="0.01" id="mao_obra" class="w-full p-2 border rounded-md" value="0.00" />
+            </div>
+
+            <div class="col-span-2 md:col-span-3">
+              <label class="block text-xs font-semibold text-gray-600">Serviços Realizados (um por linha)</label>
+              <textarea id="servicos" rows="3" class="w-full p-2 border rounded-md font-mono text-xs"></textarea>
+            </div>
+
+            <div class="col-span-2 md:col-span-3 mt-2">
+              <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-md font-bold hover:bg-green-700 transition">
+                💾 Salvar Ordem de Serviço no Banco
+              </button>
+            </div>
+          </form>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ABA 2: BUSCADOR -->
+    <div id="tab-buscar" class="tab-content py-6 hidden">
+      <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div class="flex gap-3 mb-6">
+          <input type="text" id="input-busca" placeholder="Buscar por Placa, Nome, Veículo ou Nº do Orçamento..." class="flex-1 p-2 border rounded-md text-sm" />
+          <button onclick="buscarNotas()" class="bg-blue-600 text-white px-6 py-2 rounded-md text-sm font-semibold hover:bg-blue-700">Buscar</button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-gray-600 border-collapse">
+            <thead>
+              <tr class="bg-gray-100 border-b">
+                <th class="p-3">Nº OS</th>
+                <th class="p-3">Data</th>
+                <th class="p-3">Cliente</th>
+                <th class="p-3">Veículo</th>
+                <th class="p-3">Peças</th>
+                <th class="p-3">Mão de Obra</th>
+                <th class="p-3">Total</th>
+                <th class="p-3">Pagamento</th>
+                <th class="p-3">Serviços</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-resultados">
+              <tr><td colspan="9" class="p-4 text-center text-gray-400">Digite um termo acima para buscar.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ABA 3: RELATÓRIO -->
+    <div id="tab-relatorio" class="tab-content py-6 hidden">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 text-center">
+          <span class="text-xs text-gray-500 font-semibold uppercase">Total de OS</span>
+          <p id="rel-qtd" class="text-2xl font-bold text-gray-800 mt-1">0</p>
+        </div>
+        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 text-center">
+          <span class="text-xs text-gray-500 font-semibold uppercase">Faturamento Total</span>
+          <p id="rel-faturamento" class="text-2xl font-bold text-green-600 mt-1">R$ 0,00</p>
+        </div>
+        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 text-center">
+          <span class="text-xs text-gray-500 font-semibold uppercase">Total Peças</span>
+          <p id="rel-pecas" class="text-2xl font-bold text-blue-600 mt-1">R$ 0,00</p>
+        </div>
+        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 text-center">
+          <span class="text-xs text-gray-500 font-semibold uppercase">Total Mão de Obra</span>
+          <p id="rel-mo" class="text-2xl font-bold text-purple-600 mt-1">R$ 0,00</p>
+        </div>
+      </div>
+
+      <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <h3 class="font-bold text-sm text-gray-700 mb-3">Detalhamento por Forma de Pagamento</h3>
+        <ul id="rel-pagamentos" class="divide-y text-xs">
+          <li class="py-2 text-gray-400">Nenhum dado carregado.</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const API_URL = "http://127.0.0.1:8000";
+
+    // Controle de Abas
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.getElementById(tabId).classList.remove('hidden');
+
+      document.querySelectorAll('[id^="tab-btn-"]').forEach(btn => {
+        btn.classList.remove('border-blue-600', 'text-blue-600');
+        btn.classList.add('border-transparent', 'text-gray-500');
+      });
+
+      if (tabId === 'tab-digitalizar') document.getElementById('tab-btn-1').classList.add('border-blue-600', 'text-blue-600');
+      if (tabId === 'tab-buscar') {
+        document.getElementById('tab-btn-2').classList.add('border-blue-600', 'text-blue-600');
+        buscarNotas();
+      }
+      if (tabId === 'tab-relatorio') {
+        document.getElementById('tab-btn-3').classList.add('border-blue-600', 'text-blue-600');
+        carregarRelatorio();
+      }
+    }
+
+    // Rota 1: Extrair dados da Nota via IA
+    async function enviarParaIA() {
+      const fileInput = document.getElementById('input-foto');
+      if (!fileInput.files[0]) {
+        alert("Por favor, selecione uma imagem primeiro.");
+        return;
+      }
+
+      const btn = document.getElementById('btn-ia');
+      const status = document.getElementById('status-ia');
+      btn.disabled = true;
+      status.classList.remove('hidden');
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      try {
+        const res = await fetch(`${API_URL}/api/extrair-nota`, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!res.ok) throw new Error("Erro na resposta da API");
+
+        const data = await res.json();
+        const d = data.dados;
+
+        // Preenche o formulário com o retorno da IA
+        document.getElementById('numero').value = d.numero || '';
+        document.getElementById('data').value = d.data || '';
+        document.getElementById('cliente').value = d.cliente || '';
+        document.getElementById('veiculo').value = d.veiculo || '';
+        document.getElementById('placa').value = d.placa || '';
+        document.getElementById('cor').value = d.cor || '';
+        document.getElementById('ano').value = d.ano || '';
+        document.getElementById('km').value = d.km || '';
+        document.getElementById('forma_pagamento').value = d.forma_pagamento || '';
+        document.getElementById('pecas').value = d.pecas || 0;
+        document.getElementById('mao_obra').value = d.mao_obra || 0;
+        document.getElementById('servicos').value = (d.servicos || []).join('\n');
+
+      } catch (err) {
+        alert("Erro ao ler imagem: " + err.message);
+      } finally {
+        btn.disabled = false;
+        status.classList.add('hidden');
+      }
+    }
+
+    // Rota 2: Salvar Ordem de Serviço
+    async function salvarOS(e) {
+      e.preventDefault();
+
+      const servicosRaw = document.getElementById('servicos').value;
+      const servicosLista = servicosRaw.split('\n').filter(s => s.trim() !== '');
+
+      const payload = {
+        numero: document.getElementById('numero').value,
+        data: document.getElementById('data').value,
+        cliente: document.getElementById('cliente').value,
+        veiculo: document.getElementById('veiculo').value,
+        cor: document.getElementById('cor').value,
+        placa: document.getElementById('placa').value,
+        ano: document.getElementById('ano').value,
+        km: document.getElementById('km').value,
+        forma_pagamento: document.getElementById('forma_pagamento').value,
+        pecas: parseFloat(document.getElementById('pecas').value) || 0,
+        mao_obra: parseFloat(document.getElementById('mao_obra').value) || 0,
+        servicos: servicosLista
+      };
+
+      try {
+        const res = await fetch(`${API_URL}/api/ordens-servico`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) throw new Error("Falha ao salvar no banco");
+
+        alert("Ordem de Serviço salva com sucesso!");
+        document.getElementById('form-os').reset();
+        document.getElementById('input-foto').value = '';
+      } catch (err) {
+        alert("Erro ao salvar: " + err.message);
+      }
+    }
+
+    // Rota 3: Buscar Notas
+    async function buscarNotas() {
+      const q = document.getElementById('input-busca').value;
+      const tbody = document.getElementById('tabela-resultados');
+
+      try {
+        const res = await fetch(`${API_URL}/api/ordens-servico/buscar?q=${encodeURIComponent(q)}`);
+        const dados = await res.json();
+
+        tbody.innerHTML = '';
+        if (dados.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="9" class="p-4 text-center text-gray-400">Nenhum registro encontrado.</td></tr>';
+          return;
+        }
+
+        dados.forEach(os => {
+          tbody.innerHTML += `
+            <tr class="border-b hover:bg-gray-50">
+              <td class="p-3 font-bold text-blue-600">${os.numero_orcamento}</td>
+              <td class="p-3">${os.data}</td>
+              <td class="p-3 font-semibold">${os.cliente}</td>
+              <td class="p-3">${os.veiculo}</td>
+              <td class="p-3">R$ ${os.pecas.toFixed(2)}</td>
+              <td class="p-3">R$ ${os.mao_obra.toFixed(2)}</td>
+              <td class="p-3 font-bold text-green-600">R$ ${os.total.toFixed(2)}</td>
+              <td class="p-3">${os.forma_pagamento || '-'}</td>
+              <td class="p-3 text-xs italic">${os.servicos.join(', ')}</td>
+            </tr>
+          `;
+        });
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-red-500">Erro ao carregar dados.</td></tr>`;
+      }
+    }
+
+    // Rota 4: Relatório de Fechamento Mensal
+    async function carregarRelatorio() {
+      try {
+        const res = await fetch(`${API_URL}/api/relatorios/fechamento-mensal`);
+        const d = await res.json();
+
+        document.getElementById('rel-qtd').innerText = d.quantidade_os;
+        document.getElementById('rel-faturamento').innerText = `R$ ${d.faturamento_total.toFixed(2)}`;
+        document.getElementById('rel-pecas').innerText = `R$ ${d.total_pecas.toFixed(2)}`;
+        document.getElementById('rel-mo').innerText = `R$ ${d.total_mao_obra.toFixed(2)}`;
+
+        const pagUl = document.getElementById('rel-pagamentos');
+        pagUl.innerHTML = '';
+        for (const [forma, valor] of Object.entries(d.detalhe_pagamentos)) {
+          pagUl.innerHTML += `
+            <li class="py-2 flex justify-between items-center">
+              <span class="font-semibold text-gray-600">${forma}</span>
+              <span class="font-bold text-gray-800">R$ ${valor.toFixed(2)}</span>
+            </li>
+          `;
+        }
+      } catch (err) {
+        console.error("Erro ao carregar relatório:", err);
+      }
+    }
+  </script>
+</body>
+</html>
