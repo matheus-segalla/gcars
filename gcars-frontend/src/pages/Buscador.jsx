@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Search, Trash2, Loader2, ChevronLeft, ChevronRight, FileSpreadsheet, AlertCircle, Eye, X } from 'lucide-react';
 import api from '../services/api';
 import ModalPedido from '../components/ModalPedido';
+import { useNotification } from '../contexts/NotificationContext';
 
 export default function Buscador() {
+  const { showToast, showConfirm } = useNotification();
+
   const [termoBusca, setTermoBusca] = useState('');
   const [dados, setDados] = useState({
     itens: [],
@@ -15,11 +18,11 @@ export default function Buscador() {
   const [loading, setLoading] = useState(false);
   const [erroConexao, setErroConexao] = useState(false);
 
-  // Estados do Modal
+  // Estados do Modal de Visualização
   const [pedidoSelecionado, setPedidoSelecionado] = useState(null);
   const [modalAberto, setModalAberto] = useState(false);
 
-  // Busca aceita o termo como parâmetro para evitar atraso de estado
+  // Busca paginada preservando o termo ativo
   const handleBuscar = async (paginaAlvo = 1, termo = termoBusca) => {
     setLoading(true);
     setErroConexao(false);
@@ -36,7 +39,6 @@ export default function Buscador() {
     }
   };
 
-  // Limpa o input e recarrega todas as ordens
   const handleLimparFiltro = () => {
     setTermoBusca('');
     handleBuscar(1, '');
@@ -47,19 +49,24 @@ export default function Buscador() {
     setModalAberto(true);
   };
 
-  const handleExcluirOS = async (id, numero) => {
-    const confirmacao = window.confirm(
-      `⚠️ Tem certeza que deseja excluir a OS #${numero} (ID: ${id})?\nEsta ação não poderá ser desfeita.`
-    );
-    if (confirmacao) {
-      try {
-        await api.delete(`/api/ordens-servico/${id}`);
-        alert(`OS #${numero} excluída com sucesso!`);
-        handleBuscar(dados.pagina, termoBusca);
-      } catch (err) {
-        alert("Erro ao excluir: " + (err.response?.data?.detail || err.message));
+  // Exclusão usando o Modal e Toast do Contexto Global
+  const handleExcluirOS = (os) => {
+    showConfirm({
+      titulo: "Excluir Ordem de Serviço?",
+      mensagem: `Deseja realmente apagar a OS #${os.numero_orcamento} (ID: ${os.id})? Todos os dados vinculados serão removidos.`,
+      confirmText: "Sim, Excluir",
+      cancelText: "Cancelar",
+      isDanger: true,
+      onConfirm: async () => {
+        try {
+          await api.delete(`/api/ordens-servico/${os.id}`);
+          showToast(`OS #${os.numero_orcamento} excluída com sucesso!`, "sucesso");
+          handleBuscar(dados.pagina, termoBusca);
+        } catch (err) {
+          showToast(err.response?.data?.detail || err.message, "erro");
+        }
       }
-    }
+    });
   };
 
   useEffect(() => {
@@ -83,7 +90,6 @@ export default function Buscador() {
             className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-4 pr-10 py-3 text-xs text-white focus:border-red-500 outline-none transition"
           />
 
-          {/* Botão "X" dentro do input se houver texto digitado */}
           {termoBusca && (
             <button
               onClick={handleLimparFiltro}
@@ -95,7 +101,6 @@ export default function Buscador() {
           )}
         </div>
 
-        {/* Botão Limpar Filtro visível quando há texto */}
         {termoBusca && (
           <button
             onClick={handleLimparFiltro}
@@ -181,7 +186,7 @@ export default function Buscador() {
                         <Eye className="w-3.5 h-3.5 text-blue-400" /> Ver Pedido
                       </button>
                       <button
-                        onClick={() => handleExcluirOS(os.id, os.numero_orcamento)}
+                        onClick={() => handleExcluirOS(os)}
                         className="p-1.5 bg-red-500/10 hover:bg-red-500/25 text-red-400 hover:text-red-300 rounded-lg transition"
                         title="Excluir OS"
                       >

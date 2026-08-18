@@ -1,8 +1,23 @@
 import React, { useState } from 'react';
 import { Camera, FileText, UploadCloud, CheckCircle2, Loader2, Image as ImageIcon } from 'lucide-react';
 import api from '../services/api';
+import { useNotification } from '../contexts/NotificationContext';
+
+// Lista padronizada de formas de pagamento
+const FORMAS_PAGAMENTO = [
+  'Dinheiro',
+  'PIX',
+  'Cartão de Débito',
+  'Cartão de Crédito',
+  'Boleto Bancário',
+  'A Prazo / Faturado',
+  'Transferência (TED/DOC)',
+  'Outro / Pendente'
+];
 
 export default function Digitalizar() {
+  const { showToast } = useNotification();
+
   const [loadingIA, setLoadingIA] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [arquivos, setArquivos] = useState([]);
@@ -14,9 +29,23 @@ export default function Digitalizar() {
     forma_pagamento: '', pecas: 0, mao_obra: 0, servicos: ''
   });
 
+  // Normaliza o texto que a IA encontrou para casar com as opções do select
+  const normalizarFormaPagamento = (valorBruto) => {
+    if (!valorBruto) return '';
+    const v = valorBruto.toLowerCase().trim();
+    if (v.includes('pix')) return 'PIX';
+    if (v.includes('débito') || v.includes('debito')) return 'Cartão de Débito';
+    if (v.includes('crédito') || v.includes('credito') || v.includes('cartao') || v.includes('cartão')) return 'Cartão de Crédito';
+    if (v.includes('dinheiro') || v.includes('especie') || v.includes('espécie')) return 'Dinheiro';
+    if (v.includes('boleto')) return 'Boleto Bancário';
+    if (v.includes('prazo') || v.includes('faturado') || v.includes('pendente') || v.includes('fiado')) return 'A Prazo / Faturado';
+    if (v.includes('ted') || v.includes('doc') || v.includes('transf')) return 'Transferência (TED/DOC)';
+    return 'Outro / Pendente';
+  };
+
   const handleExtrairIA = async () => {
     if (!arquivos || arquivos.length === 0) {
-      return alert("Selecione a(s) imagem(ns) da nota primeiro!");
+      return showToast("Selecione a(s) imagem(ns) da nota primeiro!", "aviso");
     }
 
     setLoadingIA(true);
@@ -38,13 +67,14 @@ export default function Digitalizar() {
         cor: d.cor || '',
         ano: d.ano || '',
         km: d.km || '',
-        forma_pagamento: d.forma_pagamento || '',
+        forma_pagamento: normalizarFormaPagamento(d.forma_pagamento),
         pecas: d.pecas || 0,
         mao_obra: d.mao_obra || 0,
         servicos: (d.servicos || []).join('\n')
       });
+      showToast("Dados e imagem extraídos com sucesso!", "sucesso");
     } catch (err) {
-      alert("Erro ao ler nota(s) com IA: " + (err.response?.data?.detail || err.message));
+      showToast("Erro ao ler nota com IA: " + (err.response?.data?.detail || err.message), "erro");
     } finally {
       setLoadingIA(false);
     }
@@ -64,7 +94,8 @@ export default function Digitalizar() {
 
     try {
       await api.post('/api/ordens-servico', payload);
-      alert("Ordem de Serviço e foto(s) salvas com sucesso!");
+      showToast(`Ordem #${formData.numero || 'S/N'} salva com sucesso!`, "sucesso");
+      
       setFormData({
         numero: '', data: '', cliente: '', veiculo: '',
         placa: '', cor: '', ano: '', km: '',
@@ -73,7 +104,7 @@ export default function Digitalizar() {
       setArquivos([]);
       setFotosUrls([]);
     } catch (err) {
-      alert("Erro ao salvar: " + (err.response?.data?.detail || err.message));
+      showToast("Erro ao salvar: " + (err.response?.data?.detail || err.message), "erro");
     } finally {
       setSalvando(false);
     }
@@ -81,7 +112,7 @@ export default function Digitalizar() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      {/* Upload */}
+      {/* Upload de Fotos */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 flex flex-col items-center justify-center text-center shadow-xl">
         <h2 className="text-sm font-extrabold text-zinc-300 uppercase tracking-wider mb-4 flex items-center gap-2">
           <UploadCloud className="w-4 h-4 text-red-500" /> Foto(s) do Orçamento
@@ -104,7 +135,6 @@ export default function Digitalizar() {
           <span className="text-[10px] text-zinc-500 mt-1">Segure Ctrl/Shift para selecionar várias</span>
         </div>
 
-        {/* Miniaturas das fotos enviadas para o Supabase */}
         {fotosUrls.length > 0 && (
           <div className="w-full mt-4 p-3 bg-zinc-950/80 rounded-xl border border-zinc-800">
             <span className="text-[10px] font-bold uppercase text-zinc-400 block mb-2 flex items-center gap-1 justify-center">
@@ -126,14 +156,14 @@ export default function Digitalizar() {
           className="w-full mt-6 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-red-600/25 transition disabled:opacity-50 flex justify-center items-center gap-2"
         >
           {loadingIA ? (
-            <><Loader2 className="w-4 h-4 animate-spin" /> Salvando foto & Lendo IA...</>
+            <><Loader2 className="w-4 h-4 animate-spin" /> Processando Imagens...</>
           ) : (
             <><CheckCircle2 className="w-4 h-4" /> Extrair Dados da OS</>
           )}
         </button>
       </div>
 
-      {/* Formulário */}
+      {/* Formulário de Conferência */}
       <div className="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-xl">
         <h2 className="text-sm font-extrabold text-zinc-300 uppercase tracking-wider mb-6 flex items-center gap-2">
           <FileText className="w-4 h-4 text-red-500" /> Conferência & Registro
@@ -160,10 +190,24 @@ export default function Digitalizar() {
             <label className="text-zinc-400 mb-1 block font-medium">Placa</label>
             <input type="text" value={formData.placa} onChange={e => setFormData({ ...formData, placa: e.target.value })} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-white focus:border-red-500 outline-none uppercase font-mono" />
           </div>
+
+          {/* Select de Formas de Pagamento Padronizadas */}
           <div>
-            <label className="text-zinc-400 mb-1 block font-medium">Forma Pagamento</label>
-            <input type="text" value={formData.forma_pagamento} onChange={e => setFormData({ ...formData, forma_pagamento: e.target.value })} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-white focus:border-red-500 outline-none" />
+            <label className="text-zinc-400 mb-1 block font-medium">Forma de Pagamento</label>
+            <select
+              value={formData.forma_pagamento}
+              onChange={e => setFormData({ ...formData, forma_pagamento: e.target.value })}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-white focus:border-red-500 outline-none cursor-pointer"
+            >
+              <option value="">Selecione...</option>
+              {FORMAS_PAGAMENTO.map((opcao) => (
+                <option key={opcao} value={opcao}>
+                  {opcao}
+                </option>
+              ))}
+            </select>
           </div>
+
           <div>
             <label className="text-zinc-400 mb-1 block font-medium">Peças (R$)</label>
             <input type="number" step="0.01" value={formData.pecas} onChange={e => setFormData({ ...formData, pecas: e.target.value })} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-white focus:border-red-500 outline-none" />
@@ -184,7 +228,7 @@ export default function Digitalizar() {
 
           <div className="col-span-2 md:col-span-3 mt-4">
             <button type="submit" disabled={salvando} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3.5 rounded-xl font-extrabold text-xs uppercase tracking-wider transition shadow-lg shadow-emerald-600/25 flex justify-center items-center gap-2">
-              {salvando ? <Loader2 className="w-4 h-4 animate-spin" /> : "💾 Salvar Ordem e Foto no Supabase"}
+              {salvando ? <Loader2 className="w-4 h-4 animate-spin" /> : "💾 Salvar Ordem no Supabase"}
             </button>
           </div>
         </form>
