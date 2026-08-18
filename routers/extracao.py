@@ -5,14 +5,14 @@ import uuid
 from typing import List
 
 import anthropic
+from dotenv import load_dotenv
 from fastapi import APIRouter, File, HTTPException, UploadFile
 import httpx
 
-router = APIRouter(prefix="/api", tags=["Extração IA"])
+# Força o carregamento do .env
+load_dotenv()
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-BUCKET_NAME = "taloes"
+router = APIRouter(prefix="/api", tags=["Extração IA"])
 
 PROMPT_EXTRACAO = """Você está vendo foto(s) de um ORÇAMENTO / ORDEM DE SERVIÇO manuscrito da oficina mecânica (GCARS Reparos Automotivos).
 
@@ -42,27 +42,47 @@ Devolva SOMENTE um JSON válido sem marcações markdown:
 """
 
 
-async def upload_para_supabase(file_bytes: bytes, filename: str, content_type: str) -> str:
-    """Faz o upload da foto para o Supabase Storage e retorna a URL pública."""
-    if not SUPABASE_URL or not SUPABASE_KEY:
+async def upload_para_supabase(
+    file_bytes: bytes, filename: str, content_type: str
+) -> str:
+    supabase_url = os.getenv("SUPABASE_URL", "").rstrip("/")
+    supabase_key = os.getenv("SUPABASE_KEY", "").strip()
+    bucket_name = "taloes"
+
+    if not supabase_url or not supabase_key:
+        print("⚠️ [STORAGE ERRO] SUPABASE_URL ou SUPABASE_KEY não foram lidos do .env!")
         return ""
+
     try:
         ext = filename.split(".")[-1] if "." in filename else "jpg"
         unique_name = f"{uuid.uuid4().hex}.{ext}"
-        upload_url = f"{SUPABASE_URL}/storage/v1/object/{BUCKET_NAME}/{unique_name}"
+        upload_url = (
+            f"{supabase_url}/storage/v1/object/{bucket_name}/{unique_name}"
+        )
 
         headers = {
-            "Authorization": f"Bearer {SUPABASE_KEY}",
-            "apikey": SUPABASE_KEY,
-            "Content-Type": content_type,
+            "Authorization": f"Bearer {supabase_key}",
+            "apikey": supabase_key,
+            "Content-Type": content_type or "image/jpeg",
+            "x-upsert": "true",
         }
 
-        async with httpx.AsyncClient() as client:
-            res = await client.post(upload_url, content=file_bytes, headers=headers)
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            res = await client.post(
+                upload_url, content=file_bytes, headers=headers
+            )
+            print(f"📤 [STORAGE] Resposta Supabase ({res.status_code}): {res.text}")
+
             if res.status_code in (200, 201):
-                return f"{SUPABASE_URL}/storage/v1/object/public/{BUCKET_NAME}/{unique_name}"
+                url_publica = f"{supabase_url}/storage/v1/object/public/{bucket_name}/{unique_name}"
+                print(f"✅ [STORAGE SUCESSO] URL gerada: {url_publica}")
+                return url_publica
+            else:
+                print(f"❌ [STORAGE FALHA]: {res.status_code} - {res.text}")
+
     except Exception as err:
-        print("Erro ao enviar imagem ao Supabase Storage:", err)
+        print("❌ [STORAGE EXCEÇÃO]:", err)
+
     return ""
 
 
@@ -85,12 +105,14 @@ async def extrair_nota(files: List[UploadFile] = File(...)):
             contents = await file.read()
             media_type = file.content_type or "image/jpeg"
 
-            # 1. Upload para o Supabase Storage
-            url_publica = await upload_para_supabase(contents, file.filename, media_type)
+            # 1. Envia para o Supabase Storage
+            url_publica = await upload_para_supabase(
+                contents, file.filename, media_type
+            )
             if url_publica:
                 fotos_salvas.append(url_publica)
 
-            # 2. Prepara Base64 para Claude Vision
+            # 2. Converte para o Claude Vision
             image_base64 = base64.b64encode(contents).decode("utf-8")
             images_payload.append({
                 "type": "image",
@@ -110,10 +132,13 @@ async def extrair_nota(files: List[UploadFile] = File(...)):
             messages=[{"role": "user", "content": images_payload}],
         )
 
-        texto = "".join(b.text for b in resposta.content if b.type == "text").strip()
+        texto = "".join(
+            b.text for b in resposta.content if b.type == "text"
+        ).strip()
         texto = texto.replace("```json", "").replace("```", "").strip()
         dados = json.loads(texto)
 
         return {"sucesso": True, "dados": dados, "fotos": fotos_salvas}
     except Exception as e:
+        print("❌ Erro na extração:", e)
         raise HTTPException(status_code=500, detail=str(e))
