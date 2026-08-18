@@ -4,7 +4,7 @@ from typing import Optional
 
 from database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Query
-from models import ClienteModel, OrdemServicoModel, ServicoModel, VeiculoModel
+from models import ClienteModel, ItemServicoModel, OrdemServicoModel, VeiculoModel
 from schemas import OrdemServicoCreate
 from sqlalchemy.orm import Session
 
@@ -46,7 +46,7 @@ def criar_ordem_servico(os_in: OrdemServicoCreate, db: Session = Depends(get_db)
             db.add(veiculo)
             db.flush()
 
-        # 3. Serializar lista de fotos para JSON
+        # 3. Serializar lista de URLs de fotos para JSON
         fotos_json_str = json.dumps(os_in.fotos or [])
 
         # 4. Ordem de Serviço
@@ -64,15 +64,20 @@ def criar_ordem_servico(os_in: OrdemServicoCreate, db: Session = Depends(get_db)
         db.add(nova_os)
         db.flush()
 
-        # 5. Serviços
+        # 5. Itens de Serviços (sem o argumento 'valor')
         if os_in.servicos:
             for s_desc in os_in.servicos:
                 if s_desc.strip():
-                    servico = ServicoModel(
-                        descricao=s_desc.strip(),
-                        valor=0.0,
-                        ordem_id=nova_os.id,
-                    )
+                    try:
+                        servico = ItemServicoModel(
+                            descricao=s_desc.strip(),
+                            ordem_id=nova_os.id,
+                        )
+                    except TypeError:
+                        servico = ItemServicoModel(
+                            descricao=s_desc.strip(),
+                            ordem_servico_id=nova_os.id,
+                        )
                     db.add(servico)
 
         db.commit()
@@ -118,11 +123,14 @@ def buscar_ordens(
     itens = []
     for o in ordens:
         fotos_lista = []
-        if o.fotos_json:
+        if getattr(o, "fotos_json", None):
             try:
                 fotos_lista = json.loads(o.fotos_json)
             except Exception:
                 fotos_lista = []
+
+        servicos_lista = getattr(o, "servicos", None) or getattr(o, "itens", [])
+        servicos_nomes = [getattr(s, "descricao", str(s)) for s in servicos_lista]
 
         itens.append({
             "id": o.id,
@@ -135,7 +143,7 @@ def buscar_ordens(
             "mao_obra": o.mao_obra,
             "forma_pagamento": o.forma_pagamento,
             "fotos": fotos_lista,
-            "servicos": [s.descricao for s in o.servicos],
+            "servicos": servicos_nomes,
         })
 
     return {
