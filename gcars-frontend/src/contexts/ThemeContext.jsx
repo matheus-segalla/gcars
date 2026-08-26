@@ -4,7 +4,9 @@ const ThemeContext = createContext();
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('gcars_theme') || 'dark';
+    const salvo = localStorage.getItem('gcars_theme');
+    if (salvo) return salvo;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'dark';
   });
 
   useEffect(() => {

@@ -42,7 +42,6 @@ export default function Digitalizar() {
     forma_pagamento: '', funcionario_id: '', pecas: 0, mao_obra: 0, servicos: ''
   });
 
-  // Busca lista de mecânicos ativos cadastrados no sistema
   useEffect(() => {
     async function carregarFuncionarios() {
       try {
@@ -150,12 +149,12 @@ export default function Digitalizar() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
       
       {/* 📸 Captura de Fotos */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 sm:p-6 flex flex-col justify-between shadow-xl space-y-6">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 sm:p-6 flex flex-col justify-between shadow-xl space-y-6 transition-colors duration-200">
         <div>
-          <h2 className="text-sm font-extrabold text-zinc-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+          <h2 className="text-sm font-extrabold text-zinc-900 dark:text-zinc-300 uppercase tracking-wider mb-4 flex items-center gap-2">
             <UploadCloud className="w-4 h-4 text-red-500" /> Foto(s) do Orçamento
           </h2>
 
@@ -190,22 +189,22 @@ export default function Digitalizar() {
             <button
               type="button"
               onClick={() => galeriaInputRef.current?.click()}
-              className="flex flex-col items-center justify-center gap-2 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-200 p-4 rounded-xl font-bold text-xs transition active:scale-95"
+              className="flex flex-col items-center justify-center gap-2 bg-zinc-50 dark:bg-zinc-950 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 text-zinc-800 dark:text-zinc-200 p-4 rounded-xl font-bold text-xs transition active:scale-95"
             >
-              <FolderOpen className="w-6 h-6 text-zinc-400" />
+              <FolderOpen className="w-6 h-6 text-zinc-500 dark:text-zinc-400" />
               <span>Galeria / PC</span>
               <span className="text-[9px] text-zinc-500 font-normal">(Multi-seleção)</span>
             </button>
           </div>
 
           {arquivos.length > 0 ? (
-            <div className="space-y-2 bg-zinc-950/60 p-3 rounded-xl border border-zinc-800">
-              <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
+            <div className="space-y-2 bg-zinc-50 dark:bg-zinc-950/60 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800">
+              <div className="flex items-center justify-between text-xs text-zinc-600 dark:text-zinc-400 font-medium">
                 <span>{arquivos.length} foto(s) para extrair:</span>
                 <button
                   type="button"
                   onClick={() => setArquivos([])}
-                  className="text-[10px] text-red-400 hover:underline"
+                  className="text-[10px] text-red-500 hover:underline font-bold"
                 >
                   Limpar todas
                 </button>
@@ -213,7 +212,7 @@ export default function Digitalizar() {
 
               <div className="grid grid-cols-3 gap-2">
                 {arquivos.map((file, idx) => (
-                  <div key={idx} className="relative group rounded-lg overflow-hidden border border-zinc-800 aspect-square bg-zinc-900">
+                  <div key={idx} className="relative group rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-800 aspect-square bg-zinc-100 dark:bg-zinc-900">
                     <img
                       src={URL.createObjectURL(file)}
                       alt={`Foto ${idx + 1}`}
@@ -234,20 +233,20 @@ export default function Digitalizar() {
               </div>
             </div>
           ) : (
-            <div className="border border-dashed border-zinc-800 rounded-xl p-6 text-center text-zinc-500 text-xs">
+            <div className="border border-dashed border-zinc-300 dark:border-zinc-800 rounded-xl p-6 text-center text-zinc-500 text-xs">
               Nenhuma foto capturada ainda. Use os botões acima para fotografar o talão.
             </div>
           )}
 
           {fotosUrls.length > 0 && (
-            <div className="w-full mt-4 p-3 bg-zinc-950/80 rounded-xl border border-zinc-800">
-              <span className="text-[10px] font-bold uppercase text-zinc-400 block mb-2 flex items-center gap-1 justify-center">
-                <ImageIcon className="w-3 h-3 text-emerald-400" /> Salvas no Storage ({fotosUrls.length})
+            <div className="w-full mt-4 p-3 bg-zinc-50 dark:bg-zinc-950/80 rounded-xl border border-zinc-200 dark:border-zinc-800">
+              <span className="text-[10px] font-bold uppercase text-zinc-600 dark:text-zinc-400 block mb-2 flex items-center gap-1 justify-center">
+                <ImageIcon className="w-3 h-3 text-emerald-500" /> Salvas no Storage ({fotosUrls.length})
               </span>
               <div className="flex gap-2 justify-center overflow-x-auto">
                 {fotosUrls.map((url, i) => (
                   <a key={i} href={url} target="_blank" rel="noreferrer">
-                    <img src={url} alt="Talão" className="w-12 h-12 object-cover rounded-lg border border-zinc-700 hover:border-red-500 transition" />
+                    <img src={url} alt="Talão" className="w-12 h-12 object-cover rounded-lg border border-zinc-300 dark:border-zinc-700 hover:border-red-500 transition" />
                   </a>
                 ))}
               </div>
@@ -259,7 +258,7 @@ export default function Digitalizar() {
           type="button"
           onClick={handleExtrairIA}
           disabled={loadingIA || arquivos.length === 0}
-          className="w-full bg-red-600 hover:bg-red-500 text-white py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-red-600/25 transition disabled:opacity-40 flex justify-center items-center gap-2"
+          className="w-full bg-red-600 hover:bg-red-500 text-white py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-red-600/25 transition disabled:opacity-40 flex justify-center items-center gap-2 active:scale-95"
         >
           {loadingIA ? (
             <><Loader2 className="w-4 h-4 animate-spin" /> Lendo Imagens com IA...</>
@@ -270,42 +269,70 @@ export default function Digitalizar() {
       </div>
 
       {/* 📋 Formulário de Conferência */}
-      <div className="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-2xl p-5 sm:p-6 shadow-xl">
-        <h2 className="text-sm font-extrabold text-zinc-300 uppercase tracking-wider mb-6 flex items-center gap-2">
+      <div className="lg:col-span-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 sm:p-6 shadow-xl transition-colors duration-200">
+        <h2 className="text-sm font-extrabold text-zinc-900 dark:text-zinc-300 uppercase tracking-wider mb-6 flex items-center gap-2">
           <FileText className="w-4 h-4 text-red-500" /> Conferência & Registro
         </h2>
 
         <form onSubmit={handleSalvarOS} className="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs">
           <div>
-            <label className="text-zinc-400 mb-1 block font-medium">Nº Talão / OS</label>
-            <input type="text" value={formData.numero} onChange={e => setFormData({ ...formData, numero: e.target.value })} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-white focus:border-red-500 outline-none font-bold" required />
+            <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Nº Talão / OS</label>
+            <input 
+              type="text" 
+              value={formData.numero} 
+              onChange={e => setFormData({ ...formData, numero: e.target.value })} 
+              className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white focus:border-red-500 outline-none font-bold" 
+              required 
+            />
           </div>
           <div>
-            <label className="text-zinc-400 mb-1 block font-medium">Data</label>
-            <input type="text" value={formData.data} onChange={e => setFormData({ ...formData, data: e.target.value })} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-white focus:border-red-500 outline-none" required />
+            <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Data</label>
+            <input 
+              type="text" 
+              value={formData.data} 
+              onChange={e => setFormData({ ...formData, data: e.target.value })} 
+              className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white focus:border-red-500 outline-none" 
+              required 
+            />
           </div>
           <div>
-            <label className="text-zinc-400 mb-1 block font-medium">Cliente</label>
-            <input type="text" value={formData.cliente} onChange={e => setFormData({ ...formData, cliente: e.target.value })} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-white focus:border-red-500 outline-none" required />
+            <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Cliente</label>
+            <input 
+              type="text" 
+              value={formData.cliente} 
+              onChange={e => setFormData({ ...formData, cliente: e.target.value })} 
+              className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white focus:border-red-500 outline-none" 
+              required 
+            />
           </div>
           <div>
-            <label className="text-zinc-400 mb-1 block font-medium">Veículo</label>
-            <input type="text" value={formData.veiculo} onChange={e => setFormData({ ...formData, veiculo: e.target.value })} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-white focus:border-red-500 outline-none" required />
+            <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Veículo</label>
+            <input 
+              type="text" 
+              value={formData.veiculo} 
+              onChange={e => setFormData({ ...formData, veiculo: e.target.value })} 
+              className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white focus:border-red-500 outline-none" 
+              required 
+            />
           </div>
           <div>
-            <label className="text-zinc-400 mb-1 block font-medium">Placa</label>
-            <input type="text" value={formData.placa} onChange={e => setFormData({ ...formData, placa: e.target.value })} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-white focus:border-red-500 outline-none uppercase font-mono" />
+            <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Placa</label>
+            <input 
+              type="text" 
+              value={formData.placa} 
+              onChange={e => setFormData({ ...formData, placa: e.target.value })} 
+              className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white focus:border-red-500 outline-none uppercase font-mono" 
+            />
           </div>
 
-          {/* 👨‍🔧 Select de Mecânico / Funcionário Responsável */}
           <div>
-            <label className="text-zinc-400 mb-1 block font-medium flex items-center gap-1">
+            <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium flex items-center gap-1">
               <UserCheck className="w-3 h-3 text-red-500" /> Mecânico Responsável
             </label>
             <select
               value={formData.funcionario_id}
               onChange={e => setFormData({ ...formData, funcionario_id: e.target.value })}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-white focus:border-red-500 outline-none cursor-pointer"
+              className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white focus:border-red-500 outline-none cursor-pointer"
             >
               <option value="">Selecione o mecânico...</option>
               {funcionarios.map((func) => (
@@ -316,13 +343,12 @@ export default function Digitalizar() {
             </select>
           </div>
 
-          {/* Select de Formas de Pagamento */}
           <div>
-            <label className="text-zinc-400 mb-1 block font-medium">Forma de Pagamento</label>
+            <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Forma de Pagamento</label>
             <select
               value={formData.forma_pagamento}
               onChange={e => setFormData({ ...formData, forma_pagamento: e.target.value })}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-white focus:border-red-500 outline-none cursor-pointer"
+              className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white focus:border-red-500 outline-none cursor-pointer"
             >
               <option value="">Selecione...</option>
               {FORMAS_PAGAMENTO.map((opcao) => (
@@ -334,25 +360,51 @@ export default function Digitalizar() {
           </div>
 
           <div>
-            <label className="text-zinc-400 mb-1 block font-medium">Peças (R$)</label>
-            <input type="number" step="0.01" value={formData.pecas} onChange={e => setFormData({ ...formData, pecas: e.target.value })} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-white focus:border-red-500 outline-none" />
+            <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Peças (R$)</label>
+            <input 
+              type="number" 
+              step="0.01" 
+              value={formData.pecas} 
+              onChange={e => setFormData({ ...formData, pecas: e.target.value })} 
+              className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white focus:border-red-500 outline-none" 
+            />
           </div>
           <div>
-            <label className="text-zinc-400 mb-1 block font-medium">Mão de Obra (R$)</label>
-            <input type="number" step="0.01" value={formData.mao_obra} onChange={e => setFormData({ ...formData, mao_obra: e.target.value })} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-white focus:border-red-500 outline-none" />
+            <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Mão de Obra (R$)</label>
+            <input 
+              type="number" 
+              step="0.01" 
+              value={formData.mao_obra} 
+              onChange={e => setFormData({ ...formData, mao_obra: e.target.value })} 
+              className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white focus:border-red-500 outline-none" 
+            />
           </div>
           <div>
-            <label className="text-zinc-400 mb-1 block font-bold text-emerald-400">Total (R$)</label>
-            <input type="text" value={`R$ ${(parseFloat(formData.pecas || 0) + parseFloat(formData.mao_obra || 0)).toFixed(2)}`} disabled className="w-full bg-zinc-950 border border-emerald-500/40 rounded-lg p-2.5 text-emerald-400 font-extrabold outline-none" />
+            <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-bold text-emerald-600 dark:text-emerald-400">Total (R$)</label>
+            <input 
+              type="text" 
+              value={`R$ ${(parseFloat(formData.pecas || 0) + parseFloat(formData.mao_obra || 0)).toFixed(2)}`} 
+              disabled 
+              className="w-full bg-zinc-100 dark:bg-zinc-950 border border-emerald-500/40 rounded-lg p-2.5 text-emerald-600 dark:text-emerald-400 font-extrabold outline-none" 
+            />
           </div>
 
           <div className="col-span-2 md:col-span-3 mt-2">
-            <label className="text-zinc-400 mb-1 block font-medium">Serviços / Peças Realizados (um por linha)</label>
-            <textarea rows="4" value={formData.servicos} onChange={e => setFormData({ ...formData, servicos: e.target.value })} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-white focus:border-red-500 outline-none font-mono text-xs leading-relaxed" />
+            <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Serviços / Peças Realizados (um por linha)</label>
+            <textarea 
+              rows="4" 
+              value={formData.servicos} 
+              onChange={e => setFormData({ ...formData, servicos: e.target.value })} 
+              className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white focus:border-red-500 outline-none font-mono text-xs leading-relaxed" 
+            />
           </div>
 
           <div className="col-span-2 md:col-span-3 mt-4">
-            <button type="submit" disabled={salvando} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3.5 rounded-xl font-extrabold text-xs uppercase tracking-wider transition shadow-lg shadow-emerald-600/25 flex justify-center items-center gap-2">
+            <button 
+              type="submit" 
+              disabled={salvando} 
+              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3.5 rounded-xl font-extrabold text-xs uppercase tracking-wider transition shadow-lg shadow-emerald-600/25 flex justify-center items-center gap-2 active:scale-95"
+            >
               {salvando ? <Loader2 className="w-4 h-4 animate-spin" /> : "💾 Salvar Ordem no Supabase"}
             </button>
           </div>
