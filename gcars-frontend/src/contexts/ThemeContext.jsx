@@ -6,11 +6,11 @@ export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
     const salvo = localStorage.getItem('gcars_theme');
     if (salvo) return salvo;
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'dark';
+    return 'dark'; // Padrão escuro inicial
   });
 
   useEffect(() => {
-    const root = document.documentElement;
+    const root = document.documentElement; // Elemento <html>
     if (theme === 'dark') {
       root.classList.add('dark');
     } else {
@@ -31,5 +31,9 @@ export function ThemeProvider({ children }) {
 }
 
 export function useTheme() {
-  return useContext(ThemeContext);
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error('useTheme deve ser utilizado dentro de um ThemeProvider');
+  }
+  return context;
 }
