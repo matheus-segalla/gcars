@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Camera, 
   FileText, 
@@ -8,7 +8,7 @@ import {
   Image as ImageIcon,
   Trash2,
   FolderOpen,
-  Plus
+  UserCheck
 } from 'lucide-react';
 import api from '../services/api';
 import { useNotification } from '../contexts/NotificationContext';
@@ -31,18 +31,30 @@ export default function Digitalizar() {
   const [salvando, setSalvando] = useState(false);
   const [arquivos, setArquivos] = useState([]);
   const [fotosUrls, setFotosUrls] = useState([]);
+  const [funcionarios, setFuncionarios] = useState([]);
 
-  // Referências para os inputs de câmera e galeria
   const cameraInputRef = useRef(null);
   const galeriaInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
     numero: '', data: '', cliente: '', veiculo: '',
     placa: '', cor: '', ano: '', km: '',
-    forma_pagamento: '', pecas: 0, mao_obra: 0, servicos: ''
+    forma_pagamento: '', funcionario_id: '', pecas: 0, mao_obra: 0, servicos: ''
   });
 
-  // Normaliza o texto que a IA encontrou para casar com o select
+  // Busca lista de mecânicos ativos cadastrados no sistema
+  useEffect(() => {
+    async function carregarFuncionarios() {
+      try {
+        const res = await api.get('/api/funcionarios?apenas_ativos=true');
+        setFuncionarios(res.data || []);
+      } catch (err) {
+        console.error("Erro ao carregar funcionários:", err);
+      }
+    }
+    carregarFuncionarios();
+  }, []);
+
   const normalizarFormaPagamento = (valorBruto) => {
     if (!valorBruto) return '';
     const v = valorBruto.toLowerCase().trim();
@@ -56,16 +68,14 @@ export default function Digitalizar() {
     return 'Outro / Pendente';
   };
 
-  // Adiciona novos arquivos à lista existente (permite tirar várias fotos)
   const handleAdicionarArquivos = (e) => {
     if (e.target.files && e.target.files.length > 0) {
       const novos = Array.from(e.target.files);
       setArquivos(prev => [...prev, ...novos]);
-      e.target.value = null; // Reseta para permitir capturar a mesma foto se necessário
+      e.target.value = null;
     }
   };
 
-  // Remove uma foto específica antes de enviar para a IA
   const handleRemoverArquivo = (index) => {
     setArquivos(prev => prev.filter((_, i) => i !== index));
   };
@@ -85,7 +95,8 @@ export default function Digitalizar() {
       const fotos = res.data.fotos || [];
 
       setFotosUrls(fotos);
-      setFormData({
+      setFormData(prev => ({
+        ...prev,
         numero: d.numero || '',
         data: d.data || '',
         cliente: d.cliente || '',
@@ -98,7 +109,7 @@ export default function Digitalizar() {
         pecas: d.pecas || 0,
         mao_obra: d.mao_obra || 0,
         servicos: (d.servicos || []).join('\n')
-      });
+      }));
       showToast("Dados e foto(s) extraídos com sucesso!", "sucesso");
     } catch (err) {
       showToast("Erro ao ler nota com IA: " + (err.response?.data?.detail || err.message), "erro");
@@ -113,6 +124,7 @@ export default function Digitalizar() {
 
     const payload = {
       ...formData,
+      funcionario_id: formData.funcionario_id ? parseInt(formData.funcionario_id) : null,
       pecas: parseFloat(formData.pecas) || 0,
       mao_obra: parseFloat(formData.mao_obra) || 0,
       servicos: formData.servicos.split('\n').filter(s => s.trim() !== ''),
@@ -126,7 +138,7 @@ export default function Digitalizar() {
       setFormData({
         numero: '', data: '', cliente: '', veiculo: '',
         placa: '', cor: '', ano: '', km: '',
-        forma_pagamento: '', pecas: 0, mao_obra: 0, servicos: ''
+        forma_pagamento: '', funcionario_id: '', pecas: 0, mao_obra: 0, servicos: ''
       });
       setArquivos([]);
       setFotosUrls([]);
@@ -140,15 +152,13 @@ export default function Digitalizar() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       
-      {/* 📸 Seção de Captura e Upload */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 flex flex-col justify-between shadow-xl space-y-6">
+      {/* 📸 Captura de Fotos */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 sm:p-6 flex flex-col justify-between shadow-xl space-y-6">
         <div>
           <h2 className="text-sm font-extrabold text-zinc-300 uppercase tracking-wider mb-4 flex items-center gap-2">
             <UploadCloud className="w-4 h-4 text-red-500" /> Foto(s) do Orçamento
           </h2>
 
-          {/* Inputs invisíveis disparados pelos botões estilizados */}
-          {/* 1. Câmera traseira do celular */}
           <input
             type="file"
             accept="image/*"
@@ -157,7 +167,6 @@ export default function Digitalizar() {
             onChange={handleAdicionarArquivos}
             className="hidden"
           />
-          {/* 2. Galeria / Arquivo do PC */}
           <input
             type="file"
             accept="image/*"
@@ -167,7 +176,6 @@ export default function Digitalizar() {
             className="hidden"
           />
 
-          {/* Botões de Ação de Captura */}
           <div className="grid grid-cols-2 gap-3 mb-4">
             <button
               type="button"
@@ -190,7 +198,6 @@ export default function Digitalizar() {
             </button>
           </div>
 
-          {/* Miniaturas das Fotos Selecionadas antes do envio */}
           {arquivos.length > 0 ? (
             <div className="space-y-2 bg-zinc-950/60 p-3 rounded-xl border border-zinc-800">
               <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
@@ -216,7 +223,6 @@ export default function Digitalizar() {
                       type="button"
                       onClick={() => handleRemoverArquivo(idx)}
                       className="absolute top-1 right-1 p-1 bg-red-600/90 text-white rounded-md opacity-90 group-hover:opacity-100 transition shadow"
-                      title="Remover foto"
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
@@ -233,7 +239,6 @@ export default function Digitalizar() {
             </div>
           )}
 
-          {/* Fotos já salvas no Storage */}
           {fotosUrls.length > 0 && (
             <div className="w-full mt-4 p-3 bg-zinc-950/80 rounded-xl border border-zinc-800">
               <span className="text-[10px] font-bold uppercase text-zinc-400 block mb-2 flex items-center gap-1 justify-center">
@@ -250,7 +255,6 @@ export default function Digitalizar() {
           )}
         </div>
 
-        {/* Botão de Processar IA */}
         <button
           type="button"
           onClick={handleExtrairIA}
@@ -266,7 +270,7 @@ export default function Digitalizar() {
       </div>
 
       {/* 📋 Formulário de Conferência */}
-      <div className="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-xl">
+      <div className="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-2xl p-5 sm:p-6 shadow-xl">
         <h2 className="text-sm font-extrabold text-zinc-300 uppercase tracking-wider mb-6 flex items-center gap-2">
           <FileText className="w-4 h-4 text-red-500" /> Conferência & Registro
         </h2>
@@ -293,7 +297,26 @@ export default function Digitalizar() {
             <input type="text" value={formData.placa} onChange={e => setFormData({ ...formData, placa: e.target.value })} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-white focus:border-red-500 outline-none uppercase font-mono" />
           </div>
 
-          {/* Select de Formas de Pagamento Padronizadas */}
+          {/* 👨‍🔧 Select de Mecânico / Funcionário Responsável */}
+          <div>
+            <label className="text-zinc-400 mb-1 block font-medium flex items-center gap-1">
+              <UserCheck className="w-3 h-3 text-red-500" /> Mecânico Responsável
+            </label>
+            <select
+              value={formData.funcionario_id}
+              onChange={e => setFormData({ ...formData, funcionario_id: e.target.value })}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-white focus:border-red-500 outline-none cursor-pointer"
+            >
+              <option value="">Selecione o mecânico...</option>
+              {funcionarios.map((func) => (
+                <option key={func.id} value={func.id}>
+                  {func.nome} ({func.cargo})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Select de Formas de Pagamento */}
           <div>
             <label className="text-zinc-400 mb-1 block font-medium">Forma de Pagamento</label>
             <select

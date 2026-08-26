@@ -4,17 +4,24 @@ from typing import Optional
 
 from database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Query
-from models import ClienteModel, ItemServicoModel, OrdemServicoModel, VeiculoModel
-from schemas import OrdemServicoCreate
+from models import (
+    ClienteModel,
+    FuncionarioModel,
+    ItemServicoModel,
+    OrdemServicoModel,
+    VeiculoModel,
+)
+from schemas import AtualizarCustoSchema, OrdemServicoCreate
 from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api/ordens-servico", tags=["Ordens de Serviço"])
 
 
 @router.post("")
-def criar_ordem_servico(os_in: OrdemServicoCreate, db: Session = Depends(get_db)):
+def criar_ordem_servico(
+    os_in: OrdemServicoCreate, db: Session = Depends(get_db)
+):
     try:
-        # 1. Cliente
         cliente = (
             db.query(ClienteModel)
             .filter(ClienteModel.nome.ilike(os_in.cliente.strip()))
@@ -25,7 +32,6 @@ def criar_ordem_servico(os_in: OrdemServicoCreate, db: Session = Depends(get_db)
             db.add(cliente)
             db.flush()
 
-        # 2. Veículo
         placa_limpa = os_in.placa.strip().upper() if os_in.placa else None
         veiculo = None
         if placa_limpa:
@@ -46,10 +52,8 @@ def criar_ordem_servico(os_in: OrdemServicoCreate, db: Session = Depends(get_db)
             db.add(veiculo)
             db.flush()
 
-        # 3. Serializar lista de URLs de fotos para JSON
         fotos_json_str = json.dumps(os_in.fotos or [])
 
-        # 4. Ordem de Serviço
         nova_os = OrdemServicoModel(
             numero_orcamento=os_in.numero.strip(),
             data_os=os_in.data.strip(),
@@ -57,35 +61,62 @@ def criar_ordem_servico(os_in: OrdemServicoCreate, db: Session = Depends(get_db)
             forma_pagamento=os_in.forma_pagamento,
             pecas=os_in.pecas or 0.0,
             mao_obra=os_in.mao_obra or 0.0,
+            custo=os_in.custo or 0.0,
             total=(os_in.pecas or 0.0) + (os_in.mao_obra or 0.0),
             fotos_json=fotos_json_str,
             veiculo_id=veiculo.id,
+            funcionario_id=os_in.funcionario_id,
         )
         db.add(nova_os)
         db.flush()
 
-        # 5. Itens de Serviços (sem o argumento 'valor')
         if os_in.servicos:
             for s_desc in os_in.servicos:
                 if s_desc.strip():
-                    try:
-                        servico = ItemServicoModel(
-                            descricao=s_desc.strip(),
-                            ordem_id=nova_os.id,
-                        )
-                    except TypeError:
-                        servico = ItemServicoModel(
-                            descricao=s_desc.strip(),
-                            ordem_servico_id=nova_os.id,
-                        )
+                    servico = ItemServicoModel(
+                        descricao=s_desc.strip(),
+                        ordem_id=nova_os.id,
+                    )
                     db.add(servico)
 
         db.commit()
         db.refresh(nova_os)
-        return {"sucesso": True, "id": nova_os.id, "numero": nova_os.numero_orcamento}
+        return {
+            "sucesso": True,
+            "id": nova_os.id,
+            "numero": nova_os.numero_orcamento,
+        }
     except Exception as e:
         db.rollback()
         print("❌ Erro ao salvar OS:", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.patch("/{os_id}/custo")
+def atualizar_custo_os(
+    os_id: int, payload: AtualizarCustoSchema, db: Session = Depends(get_db)
+):
+    os_item = (
+        db.query(OrdemServicoModel)
+        .filter(OrdemServicoModel.id == os_id)
+        .first()
+    )
+    if not os_item:
+        raise HTTPException(
+            status_code=404, detail="Ordem de serviço não encontrada."
+        )
+    try:
+        os_item.custo = float(payload.custo or 0.0)
+        db.commit()
+        db.refresh(os_item)
+        return {
+            "sucesso": True,
+            "id": os_item.id,
+            "custo": os_item.custo,
+            "lucro": (os_item.total or 0.0) - os_item.custo,
+        }
+    except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -100,6 +131,10 @@ def buscar_ordens(
         db.query(OrdemServicoModel)
         .join(VeiculoModel, OrdemServicoModel.veiculo_id == VeiculoModel.id)
         .join(ClienteModel, VeiculoModel.cliente_id == ClienteModel.id)
+        .outerjoin(
+            FuncionarioModel,
+            OrdemServicoModel.funcionario_id == FuncionarioModel.id,
+        )
     )
 
     if q and q.strip():
@@ -109,6 +144,7 @@ def buscar_ordens(
             | (VeiculoModel.placa.ilike(termo))
             | (VeiculoModel.modelo.ilike(termo))
             | (OrdemServicoModel.numero_orcamento.ilike(termo))
+            | (FuncionarioModel.nome.ilike(termo))
         )
 
     total = query.count()
@@ -129,19 +165,36 @@ def buscar_ordens(
             except Exception:
                 fotos_lista = []
 
-        servicos_lista = getattr(o, "servicos", None) or getattr(o, "itens", [])
-        servicos_nomes = [getattr(s, "descricao", str(s)) for s in servicos_lista]
+        servicos_lista = getattr(o, "itens", [])
+        servicos_nomes = [s.descricao for s in servicos_lista]
+
+        custo_val = float(o.custo or 0.0)
+        total_val = float(o.total or 0.0)
+        lucro_val = total_val - custo_val
 
         itens.append({
             "id": o.id,
             "numero_orcamento": o.numero_orcamento,
             "data": o.data_os,
-            "cliente": o.veiculo.cliente.nome if o.veiculo and o.veiculo.cliente else "Não informado",
-            "veiculo": f"{o.veiculo.modelo} ({o.veiculo.placa or 'Sem placa'})" if o.veiculo else "Não informado",
-            "total": o.total,
-            "pecas": o.pecas,
-            "mao_obra": o.mao_obra,
+            "cliente": (
+                o.veiculo.cliente.nome
+                if o.veiculo and o.veiculo.cliente
+                else "Não informado"
+            ),
+            "veiculo": (
+                f"{o.veiculo.modelo} ({o.veiculo.placa or 'Sem placa'})"
+                if o.veiculo
+                else "Não informado"
+            ),
+            "total": total_val,
+            "pecas": float(o.pecas or 0.0),
+            "mao_obra": float(o.mao_obra or 0.0),
+            "custo": custo_val,
+            "lucro": lucro_val,
             "forma_pagamento": o.forma_pagamento,
+            "mecanico": (
+                o.funcionario.nome if o.funcionario else "Não atribuído"
+            ),
             "fotos": fotos_lista,
             "servicos": servicos_nomes,
         })
@@ -157,9 +210,15 @@ def buscar_ordens(
 
 @router.delete("/{os_id}")
 def excluir_ordem(os_id: int, db: Session = Depends(get_db)):
-    os_item = db.query(OrdemServicoModel).filter(OrdemServicoModel.id == os_id).first()
+    os_item = (
+        db.query(OrdemServicoModel)
+        .filter(OrdemServicoModel.id == os_id)
+        .first()
+    )
     if not os_item:
-        raise HTTPException(status_code=404, detail="Ordem de serviço não encontrada.")
+        raise HTTPException(
+            status_code=404, detail="Ordem de serviço não encontrada."
+        )
     try:
         db.delete(os_item)
         db.commit()
