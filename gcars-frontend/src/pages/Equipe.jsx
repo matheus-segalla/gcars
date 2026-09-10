@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, 
-  UserPlus, 
-  Award, 
-  Loader2, 
-  Power 
+import {
+  Users,
+  UserPlus,
+  Award,
+  Loader2,
+  Power,
+  Trash2
 } from 'lucide-react';
 import api from '../services/api';
 import { useNotification } from '../contexts/NotificationContext';
@@ -33,6 +34,24 @@ export default function Equipe() {
   useEffect(() => {
     carregarDados();
   }, []);
+
+  const handleExcluirFuncionario = (func) => {
+    showConfirm({
+      titulo: 'Excluir Funcionário Permanentemente?',
+      mensagem: `Tem certeza que deseja excluir "${func.nome}"? As ordens de serviço anteriores serão mantidas, mas sem mecânico atribuído.`,
+      confirmText: 'Sim, Excluir Definitivamente',
+      isDanger: true,
+      onConfirm: async () => {
+        try {
+          await api.delete(`/api/funcionarios/${func.id}`);
+          setDesempenho(prev => prev.filter(f => f.id !== func.id));
+          showToast(`Funcionário "${func.nome}" excluído com sucesso!`, 'sucesso');
+        } catch (err) {
+          showToast('Erro ao excluir: ' + (err.response?.data?.detail || err.message), 'erro');
+        }
+      }
+    });
+  };
 
   const handleCadastrar = async (e) => {
     e.preventDefault();
@@ -72,7 +91,6 @@ export default function Equipe() {
 
   return (
     <div className="space-y-8">
-      
       {/* ➕ Cadastro Rápido */}
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 sm:p-6 shadow-xl transition-colors">
         <h2 className="text-sm font-extrabold text-zinc-900 dark:text-zinc-300 uppercase tracking-wider mb-4 flex items-center gap-2">
@@ -142,13 +160,12 @@ export default function Equipe() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {desempenho.map((func, index) => (
-              <div 
-                key={func.id} 
-                className={`bg-white dark:bg-zinc-900 border rounded-2xl p-5 space-y-4 shadow-xl relative overflow-hidden transition ${
-                  func.ativo 
-                    ? 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700' 
+              <div
+                key={func.id}
+                className={`bg-white dark:bg-zinc-900 border rounded-2xl p-5 space-y-4 shadow-xl relative overflow-hidden transition ${func.ativo
+                    ? 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
                     : 'border-zinc-200 dark:border-zinc-800/40 opacity-60'
-                }`}
+                  }`}
               >
                 {index === 0 && func.total_ordens > 0 && (
                   <div className="absolute top-0 right-0 bg-gradient-to-l from-amber-500 to-amber-600 text-black font-black text-[10px] uppercase px-3 py-1 rounded-bl-xl flex items-center gap-1 shadow-md">
@@ -156,12 +173,12 @@ export default function Equipe() {
                   </div>
                 )}
 
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h4 className="text-sm font-black text-zinc-900 dark:text-white flex items-center gap-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 pr-2">
+                    <h4 className="text-sm font-black text-zinc-900 dark:text-white flex items-center gap-2 truncate">
                       {func.nome}
                       {!func.ativo && (
-                        <span className="text-[9px] bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-2 py-0.5 rounded font-normal">
+                        <span className="text-[9px] bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-2 py-0.5 rounded font-normal shrink-0">
                           Inativo
                         </span>
                       )}
@@ -169,17 +186,28 @@ export default function Equipe() {
                     <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">{func.cargo}</span>
                   </div>
 
-                  <button
-                    onClick={() => handleToggleStatus(func)}
-                    className={`p-1.5 rounded-lg transition ${
-                      func.ativo 
-                        ? 'text-zinc-400 hover:text-red-500 hover:bg-zinc-100 dark:hover:bg-zinc-800' 
-                        : 'text-emerald-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'
-                    }`}
-                    title={func.ativo ? "Desativar Funcionário" : "Reativar Funcionário"}
-                  >
-                    <Power className="w-4 h-4" />
-                  </button>
+                  {/* Agrupamento com gap e sem quebra de alinhamento */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleStatus(func)}
+                      className={`p-1.5 rounded-lg transition ${func.ativo
+                          ? 'text-zinc-400 hover:text-red-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                          : 'text-emerald-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                        }`}
+                      title={func.ativo ? "Desativar Funcionário" : "Reativar Funcionário"}
+                    >
+                      <Power className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleExcluirFuncionario(func)}
+                      title="Excluir Permanentemente"
+                      className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
@@ -205,7 +233,6 @@ export default function Equipe() {
           </div>
         )}
       </div>
-
     </div>
   );
 }

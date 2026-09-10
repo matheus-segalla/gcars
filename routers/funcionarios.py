@@ -86,3 +86,33 @@ def relatorio_desempenho(db: Session = Depends(get_db)):
     except Exception as e:
         print("❌ Erro ao gerar relatório de equipe:", e)
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/{func_id}")
+def excluir_funcionario(func_id: int, db: Session = Depends(get_db)):
+    funcionario = (
+        db.query(FuncionarioModel)
+        .filter(FuncionarioModel.id == func_id)
+        .first()
+    )
+    if not funcionario:
+        raise HTTPException(
+            status_code=404, detail="Funcionário não encontrado."
+        )
+
+    try:
+        # Desvincula o mecânico das ordens antigas para não violar a chave estrangeira
+        db.query(OrdemServicoModel).filter(
+            OrdemServicoModel.funcionario_id == func_id
+        ).update({"funcionario_id": None})
+
+        # Remove o funcionário
+        db.delete(funcionario)
+        db.commit()
+
+        return {
+            "sucesso": True,
+            "mensagem": f"Funcionário '{funcionario.nome}' excluído com sucesso.",
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
