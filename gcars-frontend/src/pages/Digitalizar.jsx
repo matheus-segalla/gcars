@@ -13,6 +13,59 @@ import {
 import api from '../services/api';
 import { useNotification } from '../contexts/NotificationContext';
 
+const comprimirImagem = (arquivo) => {
+  return new Promise((resolve) => {
+    if (!arquivo.type.startsWith('image/')) {
+      return resolve(arquivo);
+    }
+
+    const leitor = new FileReader();
+    leitor.readAsDataURL(arquivo);
+
+    leitor.onerror = () => resolve(arquivo); // Fallback se falhar leitura
+
+    leitor.onload = (evento) => {
+      const img = new Image();
+      img.src = evento.target.result;
+
+      img.onerror = () => resolve(arquivo); // Fallback se imagem for inválida
+
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let largura = img.width;
+        let altura = img.height;
+
+        const MAX_DIMENSAO = 1600;
+        if (largura > altura && largura > MAX_DIMENSAO) {
+          altura = Math.round((altura * MAX_DIMENSAO) / largura);
+          largura = MAX_DIMENSAO;
+        } else if (altura > MAX_DIMENSAO) {
+          largura = Math.round((largura * MAX_DIMENSAO) / altura);
+          altura = MAX_DIMENSAO;
+        }
+
+        canvas.width = largura;
+        canvas.height = altura;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, largura, altura);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) return resolve(arquivo);
+            const arquivoComprimido = new File([blob], arquivo.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(arquivoComprimido);
+          },
+          'image/jpeg',
+          0.82
+        );
+      };
+    };
+  });
+};
+
 const FORMAS_PAGAMENTO = [
   'Dinheiro',
   'PIX',
@@ -67,15 +120,20 @@ export default function Digitalizar() {
     return 'Outro / Pendente';
   };
 
-  const handleAdicionarArquivos = (e) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const novos = Array.from(e.target.files);
-      setArquivos(prev => [...prev, ...novos]);
-      e.target.value = null;
+  const handleAdicionarArquivos = async (e) => {
+    const input = e.target;
+    if (input.files && input.files.length > 0) {
+      const novos = Array.from(input.files);
+      const comprimidos = await Promise.all(novos.map(file => comprimirImagem(file)));
+      setArquivos(prev => [...prev, ...comprimidos]);
+      input.value = null;
     }
   };
 
   const handleRemoverArquivo = (index) => {
+    if (arquivos[index]) {
+      URL.revokeObjectURL(arquivos[index]);
+    }
     setArquivos(prev => prev.filter((_, i) => i !== index));
   };
 

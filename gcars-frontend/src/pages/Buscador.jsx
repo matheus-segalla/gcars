@@ -48,14 +48,17 @@ export default function Buscador() {
   const [osEditando, setOsEditando] = useState(null);
   const [salvandoEdicao, setSalvandoEdicao] = useState(false);
 
-  const carregarOrdens = async (termo = busca, pagina = 1) => {
+  const carregarOrdens = async (termo = busca, pagina = 1, signal = null) => {
     setLoading(true);
     try {
       const res = await api.get(
-        `/api/ordens-servico/buscar?q=${encodeURIComponent(termo)}&pagina=${pagina}&limite=10`
+        `/api/ordens-servico/buscar?q=${encodeURIComponent(termo)}&pagina=${pagina}&limite=10`,
+        { signal }
       );
       setDados(res.data);
     } catch (err) {
+      // Ignora erro se a requisição foi abortada propositalmente por nova digitação
+      if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') return;
       showToast('Erro ao buscar ordens de serviço.', 'erro');
     } finally {
       setLoading(false);
@@ -63,18 +66,16 @@ export default function Buscador() {
   };
 
   useEffect(() => {
-    // Carrega funcionários ativos para alimentar o select do modal de edição
-    api.get('/api/funcionarios?apenas_ativos=true')
-      .then(res => setFuncionarios(res.data || []))
-      .catch(() => { });
-  }, []);
+    const controller = new AbortController();
 
-  useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      carregarOrdens(busca, 1);
-    }, 400);
+      carregarOrdens(busca, 1, controller.signal);
+    }, 350);
 
-    return () => clearTimeout(delayDebounceFn);
+    return () => {
+      clearTimeout(delayDebounceFn);
+      controller.abort(); // Aborta a requisição em trânsito se o usuário continuar digitando
+    };
   }, [busca]);
 
   const handleExcluir = (id, numero) => {
