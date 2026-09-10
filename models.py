@@ -76,7 +76,9 @@ class OrdemServicoModel(Base):
     funcionario_id = Column(
         Integer, ForeignKey("funcionarios.id"), nullable=True
     )
-
+    desconto = Column(Float, default=0.0)
+    valor_pago = Column(Float, default=0.0)
+    status_pagamento = Column(String(20), default="pago")
     veiculo = relationship("VeiculoModel", back_populates="ordens")
     funcionario = relationship("FuncionarioModel", back_populates="ordens")
     itens = relationship(

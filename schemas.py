@@ -37,3 +37,19 @@ class OrdemServicoCreate(BaseModel):
 class LoginSchema(BaseModel):
     email: str
     password: str
+
+class OrdemServicoUpdate(BaseModel):
+    numero: Optional[str] = None
+    data: Optional[str] = None
+    cliente: Optional[str] = None
+    veiculo: Optional[str] = None
+    placa: Optional[str] = None
+    km: Optional[str] = None
+    forma_pagamento: Optional[str] = None
+    funcionario_id: Optional[int] = None
+    pecas: Optional[float] = 0.0
+    mao_obra: Optional[float] = 0.0
+    desconto: Optional[float] = 0.0
+    valor_pago: Optional[float] = 0.0
+    custo: Optional[float] = 0.0
+    servicos: Optional[List[str]] = []

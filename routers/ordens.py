@@ -11,7 +11,7 @@ from models import (
     OrdemServicoModel,
     VeiculoModel,
 )
-from schemas import AtualizarCustoSchema, OrdemServicoCreate
+from schemas import AtualizarCustoSchema, OrdemServicoCreate, OrdemServicoUpdate
 from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api/ordens-servico", tags=["Ordens de Serviço"])
@@ -168,31 +168,61 @@ def buscar_ordens(
         servicos_lista = getattr(o, "itens", [])
         servicos_nomes = [s.descricao for s in servicos_lista]
 
+        pecas_val = float(o.pecas or 0.0)
+        mao_obra_val = float(o.mao_obra or 0.0)
+        desconto_val = float(getattr(o, "desconto", 0.0) or 0.0)
         custo_val = float(o.custo or 0.0)
+
         total_val = float(o.total or 0.0)
+        if total_val == 0.0 and (pecas_val + mao_obra_val) > 0:
+            total_val = max(0.0, (pecas_val + mao_obra_val) - desconto_val)
+
+        valor_pago_val = float(getattr(o, "valor_pago", 0.0) or 0.0)
+        restante_val = max(0.0, total_val - valor_pago_val)
         lucro_val = total_val - custo_val
+
+        status_pag = getattr(o, "status_pagamento", None)
+        if not status_pag:
+            if valor_pago_val >= total_val and total_val > 0:
+                status_pag = "pago"
+            elif valor_pago_val > 0:
+                status_pag = "parcial"
+            else:
+                status_pag = "pendente"
+
+        modelo_puro = o.veiculo.modelo if o.veiculo else ""
+        placa_pura = o.veiculo.placa if (o.veiculo and o.veiculo.placa) else ""
 
         itens.append({
             "id": o.id,
             "numero_orcamento": o.numero_orcamento,
             "data": o.data_os,
-            "km": o.km, 
+            "km": o.km or "",
             "cliente": (
                 o.veiculo.cliente.nome
                 if o.veiculo and o.veiculo.cliente
                 else "Não informado"
             ),
+            # String formatada mantida para não quebrar a tabela visual
             "veiculo": (
-                f"{o.veiculo.modelo} ({o.veiculo.placa or 'Sem placa'})"
+                f"{modelo_puro} ({placa_pura or 'Sem placa'})"
                 if o.veiculo
                 else "Não informado"
             ),
+            # Campos limpos adicionados para preencher o formulário do modal
+            "veiculo_modelo": modelo_puro,
+            "placa": placa_pura,
             "total": total_val,
-            "pecas": float(o.pecas or 0.0),
-            "mao_obra": float(o.mao_obra or 0.0),
+            "pecas": pecas_val,
+            "mao_obra": mao_obra_val,
+            "desconto": desconto_val,
+            "valor_pago": valor_pago_val,
+            "restante": restante_val,
+            "status_pagamento": status_pag,
             "custo": custo_val,
             "lucro": lucro_val,
             "forma_pagamento": o.forma_pagamento,
+            "funcionario_id": o.funcionario_id,
             "mecanico": (
                 o.funcionario.nome if o.funcionario else "Não atribuído"
             ),
@@ -224,6 +254,79 @@ def excluir_ordem(os_id: int, db: Session = Depends(get_db)):
         db.delete(os_item)
         db.commit()
         return {"sucesso": True, "mensagem": "OS excluída com sucesso."}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/{os_id}")
+def atualizar_ordem_servico(
+    os_id: int, payload: OrdemServicoUpdate, db: Session = Depends(get_db)
+):
+    os_item = (
+        db.query(OrdemServicoModel)
+        .filter(OrdemServicoModel.id == os_id)
+        .first()
+    )
+    if not os_item:
+        raise HTTPException(
+            status_code=404, detail="Ordem de serviço não encontrada."
+        )
+
+    try:
+        # Atualiza Cliente e Veículo se informados
+        if payload.cliente and os_item.veiculo and os_item.veiculo.cliente:
+            os_item.veiculo.cliente.nome = payload.cliente.strip()
+
+        if payload.veiculo and os_item.veiculo:
+            os_item.veiculo.modelo = payload.veiculo.strip()
+            if payload.placa is not None:
+                os_item.veiculo.placa = payload.placa.strip().upper()
+
+        # Cálculos de Total e Status
+        pecas = float(payload.pecas or 0.0)
+        mao_obra = float(payload.mao_obra or 0.0)
+        desconto = float(payload.desconto or 0.0)
+        total_liquido = max(0.0, (pecas + mao_obra) - desconto)
+        valor_pago = float(payload.valor_pago or 0.0)
+
+        if valor_pago >= total_liquido and total_liquido > 0:
+            status = "pago"
+        elif valor_pago > 0:
+            status = "parcial"
+        else:
+            status = "pendente"
+
+        # Atualiza dados da OS
+        if payload.numero:
+            os_item.numero_orcamento = payload.numero.strip()
+        if payload.data:
+            os_item.data_os = payload.data.strip()
+        os_item.km = payload.km
+        os_item.forma_pagamento = payload.forma_pagamento
+        os_item.funcionario_id = payload.funcionario_id
+        os_item.pecas = pecas
+        os_item.mao_obra = mao_obra
+        os_item.desconto = desconto
+        os_item.total = total_liquido
+        os_item.valor_pago = valor_pago
+        os_item.status_pagamento = status
+
+        # Atualiza Serviços
+        if payload.servicos is not None:
+            db.query(ItemServicoModel).filter(
+                ItemServicoModel.ordem_id == os_id
+            ).delete()
+            for s_desc in payload.servicos:
+                if s_desc.strip():
+                    db.add(
+                        ItemServicoModel(
+                            descricao=s_desc.strip(), ordem_id=os_id
+                        )
+                    )
+
+        db.commit()
+        db.refresh(os_item)
+        return {"sucesso": True, "mensagem": "Ordem atualizada com sucesso!"}
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
