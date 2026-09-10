@@ -176,6 +176,7 @@ def buscar_ordens(
             "id": o.id,
             "numero_orcamento": o.numero_orcamento,
             "data": o.data_os,
+            "km": o.km, 
             "cliente": (
                 o.veiculo.cliente.nome
                 if o.veiculo and o.veiculo.cliente
