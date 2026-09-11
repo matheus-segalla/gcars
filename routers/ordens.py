@@ -198,6 +198,7 @@ def buscar_ordens(
             "numero_orcamento": o.numero_orcamento,
             "data": o.data_os,
             "km": o.km or "",
+            "ano": o.veiculo.ano or "" if o.veiculo else "",
             "cliente": (
                 o.veiculo.cliente.nome
                 if o.veiculo and o.veiculo.cliente
@@ -212,6 +213,7 @@ def buscar_ordens(
             # Campos limpos adicionados para preencher o formulário do modal
             "veiculo_modelo": modelo_puro,
             "placa": placa_pura,
+            "ano": o.veiculo.ano or "" if o.veiculo else "",
             "total": total_val,
             "pecas": pecas_val,
             "mao_obra": mao_obra_val,
@@ -273,14 +275,18 @@ def atualizar_ordem_servico(
         )
 
     try:
-        # Atualiza Cliente e Veículo se informados
+        # Atualiza Cliente
         if payload.cliente and os_item.veiculo and os_item.veiculo.cliente:
             os_item.veiculo.cliente.nome = payload.cliente.strip()
 
-        if payload.veiculo and os_item.veiculo:
-            os_item.veiculo.modelo = payload.veiculo.strip()
+        # Atualiza dados do Veículo de forma independente
+        if os_item.veiculo:
+            if payload.veiculo:
+                os_item.veiculo.modelo = payload.veiculo.strip()
             if payload.placa is not None:
                 os_item.veiculo.placa = payload.placa.strip().upper()
+            if getattr(payload, "ano", None) is not None:
+                os_item.veiculo.ano = str(payload.ano).strip()
 
         # Cálculos de Total e Status
         pecas = float(payload.pecas or 0.0)

@@ -124,12 +124,15 @@ export default function ModalPedido({ isOpen, os, onClose }) {
           <div>
             <div class="info-group">
               <span class="info-label">Veículo / Placa</span>
-              <span class="info-value">${os.veiculo}</span>
+              <span class="info-value">${os.veiculo} ${os.ano ? `(${os.ano})` : ''}</span>
             </div>
             <div class="info-group">
               <span class="info-label">KM Atual</span>
               <span class="info-value">${os.km ? os.km + ' km' : 'Não informado'}</span>
-            </div>
+            <span class="info-value">
+    ${os.veiculo} ${os.ano ? `• ${os.ano}` : ''}
+  </span>
+              </div>
           </div>
 
           <div class="totais-box">
@@ -246,7 +249,7 @@ export default function ModalPedido({ isOpen, os, onClose }) {
             </div>
           </div>
 
-          {/* Box Cliente & Veículo */}
+          {/* Box Cliente & Veículo com Ano Incluído */}
           <div className="bg-[#0b0c0e] border border-zinc-800/90 rounded-2xl p-4 grid grid-cols-2 gap-4 text-xs">
             <div>
               <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-0.5">CLIENTE</span>
@@ -255,7 +258,9 @@ export default function ModalPedido({ isOpen, os, onClose }) {
 
             <div>
               <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-0.5">VEÍCULO / PLACA</span>
-              <span className="text-sm font-bold text-white block">{os.veiculo}</span>
+              <span className="text-sm font-bold text-white block">
+                {os.veiculo} {os.ano ? `(${os.ano})` : ''}
+              </span>
             </div>
 
             <div>

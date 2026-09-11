@@ -45,6 +45,7 @@ class OrdemServicoUpdate(BaseModel):
     veiculo: Optional[str] = None
     placa: Optional[str] = None
     km: Optional[str] = None
+    ano: Optional[str] = None
     forma_pagamento: Optional[str] = None
     funcionario_id: Optional[int] = None
     pecas: Optional[float] = 0.0

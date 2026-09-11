@@ -110,6 +110,7 @@ export default function Buscador() {
       veiculo: os.veiculo_modelo || os.veiculo || '',
       placa: os.placa || '',
       km: os.km || '',
+      ano: os.ano || '',
       funcionario_id: os.funcionario_id || '',
       forma_pagamento: os.forma_pagamento || '',
       pecas: os.pecas || 0,
@@ -136,6 +137,7 @@ export default function Buscador() {
       veiculo: osEditando.veiculo,
       placa: osEditando.placa,
       km: osEditando.km ? String(osEditando.km).trim() : null,
+      ano: osEditando.ano ? String(osEditando.ano).trim() : null,
       funcionario_id: osEditando.funcionario_id ? parseInt(osEditando.funcionario_id, 10) : null,
       forma_pagamento: osEditando.forma_pagamento,
       pecas: pecasNum,
@@ -223,7 +225,9 @@ export default function Buscador() {
                 <div className="grid grid-cols-2 gap-2 text-[11px] text-zinc-600 dark:text-zinc-400 bg-white dark:bg-zinc-900/60 p-2.5 rounded-lg border border-zinc-200 dark:border-zinc-800/80">
                   <div className="flex items-center gap-1.5 truncate">
                     <Car className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500 flex-shrink-0" />
-                    <span className="truncate">{os.veiculo}</span>
+                    <span className="truncate">
+                      {os.veiculo} {os.ano ? `(${os.ano})` : ''}
+                    </span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500 flex-shrink-0" />
@@ -425,205 +429,232 @@ export default function Buscador() {
 
       </div>
 
-      {/* ✏️ Modal de Edição Completa */}
+      {/* ✏️ Modal de Edição Completa (Otimizado para Mobile com Rolagem e Botões Fixos) */}
       {osEditando && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="w-full max-w-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-4 my-8 transition-colors">
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-200 dark:border-zinc-800">
-              <h3 className="text-base font-extrabold text-zinc-900 dark:text-white flex items-center gap-2">
-                <Pencil className="w-4 h-4 text-amber-500" /> Editar Ordem #{osEditando.numero || osEditando.id}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-xs p-2 sm:p-4 animate-in fade-in duration-150">
+
+          {/* Caixa do Modal com altura máxima de 92% da tela */}
+          <div className="w-full max-w-2xl bg-white dark:bg-[#121417] border border-zinc-200 dark:border-zinc-800 rounded-2xl sm:rounded-3xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden text-zinc-900 dark:text-white">
+
+            {/* 📌 1. Cabeçalho Fixo */}
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-zinc-200 dark:border-zinc-800/80 bg-white dark:bg-[#121417] shrink-0">
+              <h3 className="text-sm sm:text-base font-extrabold flex items-center gap-2">
+                <Pencil className="w-4 h-4 text-amber-500" />
+                Editar Ordem #{osEditando.numero || osEditando.id}
               </h3>
               <button
                 type="button"
                 onClick={() => setOsEditando(null)}
-                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-white p-1 rounded-lg"
+                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-white p-1 rounded-lg transition"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSalvarEdicao} className="space-y-4 text-xs">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                <div>
-                  <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Nº Talão / OS</label>
-                  <input
-                    type="text"
-                    value={osEditando.numero}
-                    onChange={e => setOsEditando({ ...osEditando, numero: e.target.value })}
-                    className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white outline-none focus:border-red-500 font-bold"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Data</label>
-                  <input
-                    type="text"
-                    value={osEditando.data}
-                    onChange={e => setOsEditando({ ...osEditando, data: e.target.value })}
-                    className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white outline-none focus:border-red-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Cliente</label>
-                  <input
-                    type="text"
-                    value={osEditando.cliente}
-                    onChange={e => setOsEditando({ ...osEditando, cliente: e.target.value })}
-                    className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white outline-none focus:border-red-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Veículo</label>
-                  <input
-                    type="text"
-                    value={osEditando.veiculo}
-                    onChange={e => setOsEditando({ ...osEditando, veiculo: e.target.value })}
-                    className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white outline-none focus:border-red-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Placa</label>
-                  <input
-                    type="text"
-                    value={osEditando.placa}
-                    onChange={e => setOsEditando({ ...osEditando, placa: e.target.value })}
-                    className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white outline-none focus:border-red-500 uppercase font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">KM Rodados</label>
-                  <input
-                    type="number"
-                    value={osEditando.km}
-                    onChange={e => setOsEditando({ ...osEditando, km: e.target.value })}
-                    className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white outline-none focus:border-red-500 font-mono"
-                  />
-                </div>
-              </div>
+            {/* Formulário com Flexbox Vertical */}
+            <form onSubmit={handleSalvarEdicao} className="flex flex-col flex-1 overflow-hidden">
 
-              {/* 💰 Bloco Financeiro & Pagamentos */}
-              <div className="bg-zinc-50 dark:bg-zinc-950/80 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-3">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {/* 📜 2. Área Central dos Campos (Apenas ela rola) */}
+              <div className="overflow-y-auto flex-1 p-4 sm:p-5 space-y-4 text-xs">
+
+                {/* Dados Cadastrais */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   <div>
-                    <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Peças (R$)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={osEditando.pecas}
-                      onChange={e => setOsEditando({ ...osEditando, pecas: e.target.value })}
-                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2 text-zinc-900 dark:text-white outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Mão de Obra (R$)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={osEditando.mao_obra}
-                      onChange={e => setOsEditando({ ...osEditando, mao_obra: e.target.value })}
-                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2 text-zinc-900 dark:text-white outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-amber-600 dark:text-amber-400 mb-1 block font-bold">Desconto / Taxa (R$)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={osEditando.desconto}
-                      onChange={e => setOsEditando({ ...osEditando, desconto: e.target.value })}
-                      className="w-full bg-white dark:bg-zinc-900 border border-amber-500/50 rounded-lg p-2 text-amber-600 dark:text-amber-400 font-bold outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-emerald-600 dark:text-emerald-400 mb-1 block font-bold">Total Final (R$)</label>
+                    <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Nº Talão / OS</label>
                     <input
                       type="text"
-                      disabled
-                      value={`R$ ${modalTotal.toFixed(2)}`}
-                      className="w-full bg-zinc-100 dark:bg-zinc-900/60 border border-emerald-500/40 rounded-lg p-2 text-emerald-600 dark:text-emerald-400 font-black outline-none"
+                      value={osEditando.numero}
+                      onChange={e => setOsEditando({ ...osEditando, numero: e.target.value })}
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white outline-none focus:border-red-500 font-bold"
+                      required
                     />
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-3 border-t border-zinc-200 dark:border-zinc-800">
                   <div>
-                    <label className="text-zinc-700 dark:text-zinc-300 mb-1 block font-bold">Valor Já Pago (R$)</label>
+                    <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Data</label>
+                    <input
+                      type="text"
+                      value={osEditando.data}
+                      onChange={e => setOsEditando({ ...osEditando, data: e.target.value })}
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white outline-none focus:border-red-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Cliente</label>
+                    <input
+                      type="text"
+                      value={osEditando.cliente}
+                      onChange={e => setOsEditando({ ...osEditando, cliente: e.target.value })}
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white outline-none focus:border-red-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Veículo</label>
+                    <input
+                      type="text"
+                      value={osEditando.veiculo}
+                      onChange={e => setOsEditando({ ...osEditando, veiculo: e.target.value })}
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white outline-none focus:border-red-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Placa</label>
+                    <input
+                      type="text"
+                      value={osEditando.placa}
+                      onChange={e => setOsEditando({ ...osEditando, placa: e.target.value })}
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white outline-none focus:border-red-500 uppercase font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">KM Rodados</label>
                     <input
                       type="number"
-                      step="0.01"
-                      value={osEditando.valor_pago}
-                      onChange={e => setOsEditando({ ...osEditando, valor_pago: e.target.value })}
-                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg p-2.5 text-emerald-600 dark:text-emerald-400 font-bold outline-none"
+                      value={osEditando.km}
+                      onChange={e => setOsEditando({ ...osEditando, km: e.target.value })}
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white outline-none focus:border-red-500 font-mono"
                     />
                   </div>
-                  <div className="flex flex-col justify-center">
-                    <span className="text-zinc-500 dark:text-zinc-400 text-[11px]">Saldo Pendente:</span>
-                    <span className={`text-base font-black ${modalRestante > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                      R$ {modalRestante.toFixed(2)} {modalRestante === 0 && '✓ Liquidado'}
-                    </span>
+                  <div>
+                    <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Ano</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: 2016"
+                      value={osEditando.ano || ''}
+                      onChange={e => setOsEditando({ ...osEditando, ano: e.target.value })}
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white outline-none focus:border-red-500 font-mono"
+                    />
                   </div>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Mecânico Responsável</label>
-                  <select
-                    value={osEditando.funcionario_id}
-                    onChange={e => setOsEditando({ ...osEditando, funcionario_id: e.target.value })}
-                    className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white outline-none cursor-pointer"
-                  >
-                    <option value="">Selecione o mecânico...</option>
-                    {funcionarios.map(f => (
-                      <option key={f.id} value={f.id}>{f.nome} ({f.cargo})</option>
-                    ))}
-                  </select>
+                {/* 💰 Bloco Financeiro & Pagamentos */}
+                <div className="bg-zinc-50 dark:bg-zinc-950/80 p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-3">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+                    <div>
+                      <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Peças (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={osEditando.pecas}
+                        onChange={e => setOsEditando({ ...osEditando, pecas: e.target.value })}
+                        className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2 text-zinc-900 dark:text-white outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Mão de Obra (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={osEditando.mao_obra}
+                        onChange={e => setOsEditando({ ...osEditando, mao_obra: e.target.value })}
+                        className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2 text-zinc-900 dark:text-white outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-amber-600 dark:text-amber-400 mb-1 block font-bold">Desconto (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={osEditando.desconto}
+                        onChange={e => setOsEditando({ ...osEditando, desconto: e.target.value })}
+                        className="w-full bg-white dark:bg-zinc-900 border border-amber-500/50 rounded-lg p-2 text-amber-600 dark:text-amber-400 font-bold outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-emerald-600 dark:text-emerald-400 mb-1 block font-bold">Total Final (R$)</label>
+                      <input
+                        type="text"
+                        disabled
+                        value={`R$ ${modalTotal.toFixed(2)}`}
+                        className="w-full bg-zinc-100 dark:bg-zinc-900/60 border border-emerald-500/40 rounded-lg p-2 text-emerald-600 dark:text-emerald-400 font-black outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-2.5 border-t border-zinc-200 dark:border-zinc-800">
+                    <div>
+                      <label className="text-zinc-700 dark:text-zinc-300 mb-1 block font-bold">Valor Já Pago (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={osEditando.valor_pago}
+                        onChange={e => setOsEditando({ ...osEditando, valor_pago: e.target.value })}
+                        className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg p-2.5 text-emerald-600 dark:text-emerald-400 font-bold outline-none"
+                      />
+                    </div>
+                    <div className="flex flex-col justify-center">
+                      <span className="text-zinc-500 dark:text-zinc-400 text-[11px]">Saldo Pendente:</span>
+                      <span className={`text-base font-black ${modalRestante > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                        R$ {modalRestante.toFixed(2)} {modalRestante === 0 && '✓ Liquidado'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Forma de Pagamento</label>
-                  <select
-                    value={osEditando.forma_pagamento}
-                    onChange={e => setOsEditando({ ...osEditando, forma_pagamento: e.target.value })}
-                    className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white outline-none cursor-pointer"
-                  >
-                    <option value="">Selecione...</option>
-                    {FORMAS_PAGAMENTO.map(op => (
-                      <option key={op} value={op}>{op}</option>
-                    ))}
-                  </select>
+
+                {/* Mecânico & Pagamento */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Mecânico Responsável</label>
+                    <select
+                      value={osEditando.funcionario_id}
+                      onChange={e => setOsEditando({ ...osEditando, funcionario_id: e.target.value })}
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white outline-none cursor-pointer"
+                    >
+                      <option value="">Selecione o mecânico...</option>
+                      {funcionarios.map(f => (
+                        <option key={f.id} value={f.id}>{f.nome} ({f.cargo})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Forma de Pagamento</label>
+                    <select
+                      value={osEditando.forma_pagamento}
+                      onChange={e => setOsEditando({ ...osEditando, forma_pagamento: e.target.value })}
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white outline-none cursor-pointer"
+                    >
+                      <option value="">Selecione...</option>
+                      {FORMAS_PAGAMENTO.map(op => (
+                        <option key={op} value={op}>{op}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
+
+                {/* Serviços */}
+                <div>
+                  <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Serviços / Peças (um por linha)</label>
+                  <textarea
+                    rows="3"
+                    value={osEditando.servicos}
+                    onChange={e => setOsEditando({ ...osEditando, servicos: e.target.value })}
+                    className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white font-mono outline-none"
+                  />
+                </div>
+
               </div>
 
-              <div>
-                <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Serviços / Peças Realizados (um por linha)</label>
-                <textarea
-                  rows="3"
-                  value={osEditando.servicos}
-                  onChange={e => setOsEditando({ ...osEditando, servicos: e.target.value })}
-                  className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white font-mono outline-none"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-zinc-200 dark:border-zinc-800">
+              {/* 📌 3. Rodapé Fixo (Nunca sai da tela) */}
+              <div className="p-3.5 sm:p-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-[#0b0c0e] flex items-center justify-end gap-2.5 shrink-0">
                 <button
                   type="button"
                   onClick={() => setOsEditando(null)}
-                  className="px-4 py-2.5 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white bg-zinc-100 dark:bg-zinc-800 rounded-xl font-medium transition"
+                  className="px-4 py-2.5 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white bg-zinc-100 dark:bg-zinc-800 rounded-xl font-medium transition text-xs active:scale-95"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={salvandoEdicao}
-                  className="px-5 py-2.5 text-white font-bold bg-amber-600 hover:bg-amber-500 rounded-xl shadow-lg shadow-amber-600/20 transition flex items-center gap-2 active:scale-95 disabled:opacity-50"
+                  className="px-5 py-2.5 text-white font-bold bg-amber-600 hover:bg-amber-500 rounded-xl shadow-lg shadow-amber-600/20 transition flex items-center gap-2 active:scale-95 disabled:opacity-50 text-xs"
                 >
                   {salvandoEdicao ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}
                   Salvar Alterações
                 </button>
               </div>
+
             </form>
           </div>
         </div>

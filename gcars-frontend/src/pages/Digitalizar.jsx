@@ -400,6 +400,18 @@ export default function Digitalizar() {
             />
           </div>
 
+          {/* 📅 Campo de Ano adicionado */}
+          <div>
+            <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium">Ano</label>
+            <input
+              type="text"
+              value={formData.ano}
+              onChange={e => setFormData({ ...formData, ano: e.target.value })}
+              placeholder="Ex: 2019"
+              className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-lg p-2.5 text-zinc-900 dark:text-white focus:border-red-500 outline-none font-mono"
+            />
+          </div>
+
           <div>
             <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-medium flex items-center gap-1">
               <UserCheck className="w-3 h-3 text-red-500" /> Mecânico Responsável
@@ -456,8 +468,7 @@ export default function Digitalizar() {
             />
           </div>
 
-          <div className="col-span-2 md:col-span-2">
-            <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-bold text-emerald-600 dark:text-emerald-400">Total (R$)</label>
+          <div className="col-span-2 md:col-span-1">            <label className="text-zinc-600 dark:text-zinc-400 mb-1 block font-bold text-emerald-600 dark:text-emerald-400">Total (R$)</label>
             <input
               type="text"
               value={`R$ ${(parseFloat(formData.pecas || 0) + parseFloat(formData.mao_obra || 0)).toFixed(2)}`}
