@@ -3,7 +3,6 @@ import json
 import re
 from collections import Counter
 from typing import Optional
-import re
 import unicodedata
 
 from database import get_db
@@ -126,6 +125,7 @@ def obter_estatisticas(
         total_pecas = 0.0
         total_mao_obra = 0.0
         custo_total = 0.0
+        ordens_com_desconto = 0
 
         ordens_pendentes = []
 
@@ -146,6 +146,8 @@ def obter_estatisticas(
             total_recebido += pago
             total_a_receber += saldo_restante
             total_descontos += desc
+            if desc > 0:
+                ordens_com_desconto += 1
             total_pecas += pec
             total_mao_obra += mo
             custo_total += cst
@@ -283,6 +285,7 @@ def obter_estatisticas(
             "total_recebido": total_recebido,
             "total_a_receber": total_a_receber,
             "total_descontos": total_descontos,
+            "ordens_com_desconto": ordens_com_desconto,
             "taxa_inadimplencia": round(taxa_inadimplencia, 1),
             "total_pecas": total_pecas,
             "total_mao_obra": total_mao_obra,

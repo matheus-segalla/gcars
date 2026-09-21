@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  TrendingUp,
   DollarSign,
   Wrench,
   Calendar,
@@ -10,10 +9,12 @@ import {
   Award,
   Percent,
   ArrowDownRight,
-  Clock
+  Clock,
+  Tag
 } from 'lucide-react';
 import api from '../services/api';
 import { useNotification } from '../contexts/NotificationContext';
+import MetricCard from '../components/MetricCard';
 
 export default function Relatorios() {
   const { showToast } = useNotification();
@@ -51,7 +52,8 @@ export default function Relatorios() {
   const custoTotal = Number(dadosEstatisticas?.custo_total || 0);
   const lucroReal = Number(dadosEstatisticas?.lucro_real || 0);
   const margemLucro = Number(dadosEstatisticas?.margem_lucro || 0);
-  const ticketMedio = Number(dadosEstatisticas?.ticket_medio || 0);
+  const totalDescontos = Number(dadosEstatisticas?.total_descontos || 0);
+  const ordensComDesconto = Number(dadosEstatisticas?.ordens_com_desconto || 0);
 
   const formasPagamento = Array.isArray(dadosEstatisticas?.formas_pagamento) ? dadosEstatisticas.formas_pagamento : [];
   const topServicos = Array.isArray(dadosEstatisticas?.top_servicos) ? dadosEstatisticas.top_servicos : [];
@@ -104,82 +106,85 @@ export default function Relatorios() {
         </div>
       ) : (
         <>
-          {/* 📊 Painel de Métricas (6 Cards) */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+          {/* 📊 Painel de Métricas (7 Cards) */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
 
-            {/* Faturamento Total */}
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 space-y-2 shadow-xl transition-colors">
-              <div className="flex items-center justify-between text-zinc-500 dark:text-zinc-400">
-                <span className="text-[10px] font-bold uppercase tracking-wider">Faturado</span>
-                <DollarSign className="w-4 h-4 text-blue-500" />
-              </div>
-              <p className="text-lg sm:text-xl font-black text-zinc-900 dark:text-white truncate">
-                R$ {faturamentoTotal.toFixed(2)}
-              </p>
-              <span className="text-[10px] text-zinc-500 block truncate">{totalOrdens} OS no período</span>
-            </div>
+            <MetricCard
+              label="Faturado"
+              icon={DollarSign}
+              iconClass="text-blue-500"
+              value={`R$ ${faturamentoTotal.toFixed(2)}`}
+              subtitle={`${totalOrdens} OS no período`}
+            />
 
-            {/* Total Recebido (Em Caixa) */}
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 space-y-2 shadow-xl transition-colors">
-              <div className="flex items-center justify-between text-zinc-500 dark:text-zinc-400">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Em Caixa</span>
-                <CreditCard className="w-4 h-4 text-emerald-500" />
-              </div>
-              <p className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400 truncate">
-                R$ {totalRecebido.toFixed(2)}
-              </p>
-              <span className="text-[10px] text-zinc-500 block truncate">Total já liquidado</span>
-            </div>
+            <MetricCard
+              label="Em Caixa"
+              labelClass="text-emerald-600 dark:text-emerald-400"
+              icon={CreditCard}
+              iconClass="text-emerald-500"
+              value={`R$ ${totalRecebido.toFixed(2)}`}
+              valueClass="text-emerald-600 dark:text-emerald-400"
+              subtitle="Total já liquidado"
+            />
 
-            {/* A Receber (Pendente) */}
-            <div className="bg-white dark:bg-zinc-900 border border-amber-500/30 dark:border-amber-500/40 rounded-2xl p-4 space-y-2 shadow-xl transition-colors">
-              <div className="flex items-center justify-between text-zinc-500 dark:text-zinc-400">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-500">A Receber</span>
-                <Clock className="w-4 h-4 text-amber-500" />
-              </div>
-              <p className="text-lg sm:text-xl font-black text-amber-500 truncate">
-                R$ {totalAReceber.toFixed(2)}
-              </p>
-              <span className="text-[10px] text-zinc-500 block truncate">{pendencias.length} saldo(s) pendente(s)</span>
-            </div>
+            <MetricCard
+              label="A Receber"
+              labelClass="text-amber-500"
+              icon={Clock}
+              iconClass="text-amber-500"
+              value={`R$ ${totalAReceber.toFixed(2)}`}
+              valueClass="text-amber-500"
+              borderClass="border-amber-500/30 dark:border-amber-500/40"
+              subtitle={`${pendencias.length} saldo(s) pendente(s)`}
+            />
 
-            {/* Custos Totais */}
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 space-y-2 shadow-xl transition-colors">
-              <div className="flex items-center justify-between text-zinc-500 dark:text-zinc-400">
-                <span className="text-[10px] font-bold uppercase tracking-wider">Custos</span>
-                <ArrowDownRight className="w-4 h-4 text-rose-500" />
-              </div>
-              <p className="text-lg sm:text-xl font-black text-rose-600 dark:text-rose-400 truncate">
-                R$ {custoTotal.toFixed(2)}
-              </p>
-              <span className="text-[10px] text-zinc-500 block truncate">Peças e despesas</span>
-            </div>
+            <MetricCard
+              label="Custos"
+              icon={ArrowDownRight}
+              iconClass="text-rose-500"
+              value={`R$ ${custoTotal.toFixed(2)}`}
+              valueClass="text-rose-600 dark:text-rose-400"
+              subtitle="Peças e despesas"
+            />
+
+            {/* 🏷️ Card de Descontos — NOVO */}
+            <MetricCard
+              label="Descontos"
+              icon={Tag}
+              iconClass="text-orange-500"
+              value={`R$ ${totalDescontos.toFixed(2)}`}
+              valueClass="text-orange-500 dark:text-orange-400"
+              borderClass="border-orange-500/30 dark:border-orange-500/40"
+              bgClass="bg-orange-500/5 dark:bg-orange-500/5 dark:bg-zinc-900"
+              subtitle={`${ordensComDesconto} OS com desconto`}
+              subtitleClass="text-orange-600/70 dark:text-orange-500/70"
+            />
 
             {/* Lucro Real em Caixa */}
-            <div className="bg-emerald-500/10 border border-emerald-500/30 dark:border-emerald-500/40 rounded-2xl p-4 space-y-2 shadow-xl transition-colors">
-              <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider">Lucro Real</span>
-                <span className="text-[9px] font-bold bg-emerald-500/20 px-1.5 py-0.5 rounded-full flex items-center">
+            <MetricCard
+              label="Lucro Real"
+              labelClass="text-emerald-600 dark:text-emerald-400"
+              value={`R$ ${lucroReal.toFixed(2)}`}
+              valueClass="text-emerald-600 dark:text-emerald-400"
+              borderClass="border-emerald-500/30 dark:border-emerald-500/40"
+              bgClass="bg-emerald-500/10"
+              subtitleClass="text-emerald-600 dark:text-emerald-500/80 font-medium"
+              subtitle="Caixa Líquido"
+              badge={
+                <span className="text-[9px] font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-full flex items-center">
                   <Percent className="w-2.5 h-2.5" /> {margemLucro.toFixed(0)}%
                 </span>
-              </div>
-              <p className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400 truncate">
-                R$ {lucroReal.toFixed(2)}
-              </p>
-              <span className="text-[10px] text-emerald-600 dark:text-emerald-500/80 block font-medium truncate">Caixa Líquido</span>
-            </div>
+              }
+            />
 
-            {/* Mão de Obra */}
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 space-y-2 shadow-xl transition-colors">
-              <div className="flex items-center justify-between text-zinc-500 dark:text-zinc-400">
-                <span className="text-[10px] font-bold uppercase tracking-wider">Mão de Obra</span>
-                <Wrench className="w-4 h-4 text-purple-500" />
-              </div>
-              <p className="text-lg sm:text-xl font-black text-purple-600 dark:text-purple-400 truncate">
-                R$ {totalMaoObra.toFixed(2)}
-              </p>
-              <span className="text-[10px] text-zinc-500 block truncate">Total de serviços</span>
-            </div>
+            <MetricCard
+              label="Mão de Obra"
+              icon={Wrench}
+              iconClass="text-purple-500"
+              value={`R$ ${totalMaoObra.toFixed(2)}`}
+              valueClass="text-purple-600 dark:text-purple-400"
+              subtitle="Total de serviços"
+            />
 
           </div>
 

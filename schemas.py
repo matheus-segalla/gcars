@@ -34,10 +34,6 @@ class OrdemServicoCreate(BaseModel):
     funcionario_id: Optional[int] = None
 
 
-class LoginSchema(BaseModel):
-    email: str
-    password: str
-
 class OrdemServicoUpdate(BaseModel):
     numero: Optional[str] = None
     data: Optional[str] = None
