@@ -189,10 +189,10 @@ export default function ModalPedido({ isOpen, os, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in duration-150">
 
       {/* 📦 Caixa do Modal com Altura Fixada em 90% da Tela e Flexbox Vertical */}
-      <div className="w-full max-w-2xl bg-[#121417] border border-zinc-800 rounded-3xl shadow-2xl text-white max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="w-full max-w-2xl bg-white dark:bg-[#121417] border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-2xl text-zinc-900 dark:text-white max-h-[90vh] flex flex-col overflow-hidden">
 
         {/* 📌 Cabeçalho Fixo (Nunca some com a rolagem) */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800/80 bg-[#121417] shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-800/80 bg-white dark:bg-[#121417] shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-red-600 flex items-center justify-center shadow-lg shadow-red-600/30">
               <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
@@ -205,7 +205,7 @@ export default function ModalPedido({ isOpen, os, onClose }) {
               <h3 className="text-sm sm:text-base font-black tracking-wide uppercase">
                 ORDEM DE SERVIÇO #{os.numero_orcamento || os.id}
               </h3>
-              <p className="text-[11px] text-zinc-400">Detalhes completos do atendimento</p>
+              <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Detalhes completos do atendimento</p>
             </div>
           </div>
 
@@ -213,15 +213,15 @@ export default function ModalPedido({ isOpen, os, onClose }) {
             <button
               type="button"
               onClick={handleImprimir}
-              className="bg-white hover:bg-zinc-200 text-black px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-md active:scale-95"
+              className="bg-zinc-100 dark:bg-white hover:bg-zinc-200 dark:hover:bg-zinc-200 text-zinc-900 dark:text-black px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-md active:scale-95"
             >
-              <Printer className="w-4 h-4 text-black" />
+              <Printer className="w-4 h-4" />
               <span>Imprimir / Salvar PDF</span>
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="text-zinc-500 hover:text-white p-1.5 rounded-lg transition"
+              className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white p-1.5 rounded-lg transition"
             >
               <X className="w-5 h-5" />
             </button>
@@ -237,35 +237,35 @@ export default function ModalPedido({ isOpen, os, onClose }) {
               <h2 className="text-xl font-black italic tracking-wide">
                 G CARS REPAROS AUTOMOTIVOS
               </h2>
-              <p className="text-xs text-zinc-400 mt-0.5">Comprovante de Execução e Orçamento</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Comprovante de Execução e Orçamento</p>
             </div>
             <div className="text-right">
               <span className="inline-block bg-red-600/20 border border-red-500/40 text-red-500 text-xs font-black px-2.5 py-0.5 rounded-md uppercase">
                 OS #{os.numero_orcamento || os.id}
               </span>
-              <span className="block text-[11px] text-zinc-400 mt-1">
+              <span className="block text-[11px] text-zinc-500 dark:text-zinc-400 mt-1">
                 Data: {os.data}
               </span>
             </div>
           </div>
 
           {/* Box Cliente & Veículo com Ano Incluído */}
-          <div className="bg-[#0b0c0e] border border-zinc-800/90 rounded-2xl p-4 grid grid-cols-2 gap-4 text-xs">
+          <div className="bg-zinc-50 dark:bg-[#0b0c0e] border border-zinc-200 dark:border-zinc-800/90 rounded-2xl p-4 grid grid-cols-2 gap-4 text-xs">
             <div>
               <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-0.5">CLIENTE</span>
-              <span className="text-sm font-bold text-white block">{os.cliente}</span>
+              <span className="text-sm font-bold text-zinc-900 dark:text-white block">{os.cliente}</span>
             </div>
 
             <div>
               <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-0.5">VEÍCULO / PLACA</span>
-              <span className="text-sm font-bold text-white block">
+              <span className="text-sm font-bold text-zinc-900 dark:text-white block">
                 {os.veiculo} {os.ano ? `(${os.ano})` : ''}
               </span>
             </div>
 
             <div>
               <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">MECÂNICO RESPONSÁVEL</span>
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-200">
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-700 dark:text-zinc-200">
                 <User className="w-3.5 h-3.5 text-red-500" />
                 {os.mecanico || 'Não atribuído'}
               </span>
@@ -273,23 +273,23 @@ export default function ModalPedido({ isOpen, os, onClose }) {
 
             <div>
               <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">FORMA DE PAGAMENTO</span>
-              <span className="text-xs font-bold text-zinc-200">{os.forma_pagamento || 'N/A'}</span>
+              <span className="text-xs font-bold text-zinc-700 dark:text-zinc-200">{os.forma_pagamento || 'N/A'}</span>
             </div>
           </div>
 
           {/* Lista de Serviços */}
           <div className="space-y-2">
-            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-300">
+            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
               <Wrench className="w-4 h-4 text-red-500" />
               <span>SERVIÇOS & PEÇAS DESCRITAS ({servicos.length})</span>
             </div>
 
-            <div className="bg-[#0b0c0e] border border-zinc-800/90 rounded-2xl p-4 divide-y divide-zinc-800/80 text-xs">
+            <div className="bg-zinc-50 dark:bg-[#0b0c0e] border border-zinc-200 dark:border-zinc-800/90 rounded-2xl p-4 divide-y divide-zinc-200 dark:divide-zinc-800/80 text-xs">
               {servicos.length > 0 ? (
                 servicos.map((s, idx) => (
                   <div key={idx} className="py-2.5 first:pt-0 last:pb-0 flex items-center gap-2.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
-                    <span className="text-zinc-200 font-medium">{s}</span>
+                    <span className="text-zinc-700 dark:text-zinc-200 font-medium">{s}</span>
                   </div>
                 ))
               ) : (
@@ -303,12 +303,12 @@ export default function ModalPedido({ isOpen, os, onClose }) {
           {/* 📷 Fotos Anexadas do Talão/Orçamento */}
           {fotos.length > 0 && (
             <div className="space-y-2">
-              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-300">
+              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
                 <ImageIcon className="w-4 h-4 text-red-500" />
                 <span>FOTOS ANEXADAS ({fotos.length})</span>
               </div>
 
-              <div className="bg-[#0b0c0e] border border-zinc-800/90 rounded-2xl p-3 flex gap-3 overflow-x-auto">
+              <div className="bg-zinc-50 dark:bg-[#0b0c0e] border border-zinc-200 dark:border-zinc-800/90 rounded-2xl p-3 flex gap-3 overflow-x-auto">
                 {fotos.map((url, i) => (
                   <div
                     key={i}
@@ -334,27 +334,27 @@ export default function ModalPedido({ isOpen, os, onClose }) {
         </div>
 
         {/* 📌 Rodapé Financeiro Fixo na Base */}
-        <div className="bg-[#0b0c0e] border-t border-zinc-800/90 px-6 py-4 flex items-center justify-between text-xs shrink-0">
+        <div className="bg-zinc-50 dark:bg-[#0b0c0e] border-t border-zinc-200 dark:border-zinc-800/90 px-6 py-4 flex items-center justify-between text-xs shrink-0">
           <div>
             <span className="text-[10px] text-zinc-500 block uppercase font-medium">Peças:</span>
-            <span className="font-bold text-white text-sm">R$ {totalPecas.toFixed(2)}</span>
+            <span className="font-bold text-zinc-900 dark:text-white text-sm">R$ {totalPecas.toFixed(2)}</span>
           </div>
 
           <div>
             <span className="text-[10px] text-zinc-500 block uppercase font-medium">Mão de Obra:</span>
-            <span className="font-bold text-white text-sm">R$ {totalMaoObra.toFixed(2)}</span>
+            <span className="font-bold text-zinc-900 dark:text-white text-sm">R$ {totalMaoObra.toFixed(2)}</span>
           </div>
 
-          {desconto > 0 && (
-            <div>
-              <span className="text-[10px] text-amber-500 block uppercase font-medium">Desconto:</span>
-              <span className="font-bold text-amber-400 text-sm">- R$ {desconto.toFixed(2)}</span>
-            </div>
-          )}
+          <div>
+            <span className="text-[10px] text-orange-600 dark:text-amber-500 block uppercase font-medium">Desconto:</span>
+            <span className={`font-bold text-sm ${desconto > 0 ? 'text-orange-600 dark:text-amber-400' : 'text-zinc-400 dark:text-zinc-500'}`}>
+              {desconto > 0 ? `- R$ ${desconto.toFixed(2)}` : 'R$ 0.00'}
+            </span>
+          </div>
 
           <div className="text-right">
-            <span className="text-[10px] text-zinc-400 block uppercase font-medium">Total da OS:</span>
-            <span className="text-lg font-black text-emerald-400">R$ {totalGeral.toFixed(2)}</span>
+            <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block uppercase font-medium">Total da OS:</span>
+            <span className="text-lg font-black text-emerald-600 dark:text-emerald-400">R$ {totalGeral.toFixed(2)}</span>
           </div>
         </div>
 
