@@ -10,7 +10,10 @@ import {
   Percent,
   ArrowDownRight,
   Clock,
-  Tag
+  Tag,
+  Calculator,
+  Minus,
+  Receipt
 } from 'lucide-react';
 import api from '../services/api';
 import { useNotification } from '../contexts/NotificationContext';
@@ -45,6 +48,10 @@ export default function Relatorios() {
 
   // Extração segura dos dados calculados
   const faturamentoTotal = Number(dadosEstatisticas?.faturamento_total || 0);
+  const totalDescontos = Number(dadosEstatisticas?.total_descontos || 0);
+  const totalVendasBruto = Number(
+    dadosEstatisticas?.total_vendas_bruto ?? (faturamentoTotal + totalDescontos)
+  );
   const totalRecebido = Number(dadosEstatisticas?.total_recebido || 0);
   const totalAReceber = Number(dadosEstatisticas?.total_a_receber || 0);
   const totalOrdens = Number(dadosEstatisticas?.total_ordens || 0);
@@ -52,7 +59,6 @@ export default function Relatorios() {
   const custoTotal = Number(dadosEstatisticas?.custo_total || 0);
   const lucroReal = Number(dadosEstatisticas?.lucro_real || 0);
   const margemLucro = Number(dadosEstatisticas?.margem_lucro || 0);
-  const totalDescontos = Number(dadosEstatisticas?.total_descontos || 0);
   const ordensComDesconto = Number(dadosEstatisticas?.ordens_com_desconto || 0);
 
   const formasPagamento = Array.isArray(dadosEstatisticas?.formas_pagamento) ? dadosEstatisticas.formas_pagamento : [];
@@ -106,27 +112,64 @@ export default function Relatorios() {
         </div>
       ) : (
         <>
-          {/* 📊 Painel de Métricas (7 Cards) */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+          {/* 📊 Painel de Métricas (8 Cards) */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
 
+            {/* 1. Total Vendas Bruto */}
             <MetricCard
-              label="Faturado"
+              label="Total Vendas (Bruto)"
+              icon={Receipt}
+              iconClass="text-zinc-600 dark:text-zinc-300"
+              value={`R$ ${totalVendasBruto.toFixed(2)}`}
+              valueClass="text-zinc-900 dark:text-white"
+              subtitle="Valor total sem descontos"
+            />
+
+            {/* 2. Descontos Concedidos */}
+            <MetricCard
+              label="Descontos"
+              icon={Tag}
+              iconClass="text-orange-500"
+              value={`- R$ ${totalDescontos.toFixed(2)}`}
+              valueClass="text-orange-500 dark:text-orange-400"
+              borderClass="border-orange-500/30 dark:border-orange-500/40"
+              bgClass="bg-orange-500/5 dark:bg-zinc-900"
+              subtitle={`${ordensComDesconto} OS com desconto`}
+              subtitleClass="text-orange-600/70 dark:text-orange-500/70"
+            />
+
+            {/* 3. Faturado Líquido */}
+            <MetricCard
+              label="Faturado (Líquido)"
               icon={DollarSign}
               iconClass="text-blue-500"
               value={`R$ ${faturamentoTotal.toFixed(2)}`}
-              subtitle={`${totalOrdens} OS no período`}
+              valueClass="text-blue-600 dark:text-blue-400"
+              subtitle={`${totalOrdens} OS (Bruto − Desconto)`}
             />
 
+            {/* 4. Custo de Peças */}
             <MetricCard
-              label="Em Caixa"
+              label="Custo de Peças"
+              icon={ArrowDownRight}
+              iconClass="text-rose-500"
+              value={`R$ ${custoTotal.toFixed(2)}`}
+              valueClass="text-rose-600 dark:text-rose-400"
+              subtitle="Custo interno de peças"
+            />
+
+            {/* 5. Em Caixa (Recebido) */}
+            <MetricCard
+              label="Em Caixa (Recebido)"
               labelClass="text-emerald-600 dark:text-emerald-400"
               icon={CreditCard}
               iconClass="text-emerald-500"
               value={`R$ ${totalRecebido.toFixed(2)}`}
               valueClass="text-emerald-600 dark:text-emerald-400"
-              subtitle="Total já liquidado"
+              subtitle="Valor pago pelos clientes"
             />
 
+            {/* 6. A Receber */}
             <MetricCard
               label="A Receber"
               labelClass="text-amber-500"
@@ -138,38 +181,16 @@ export default function Relatorios() {
               subtitle={`${pendencias.length} saldo(s) pendente(s)`}
             />
 
+            {/* 7. Lucro Real */}
             <MetricCard
-              label="Custos"
-              icon={ArrowDownRight}
-              iconClass="text-rose-500"
-              value={`R$ ${custoTotal.toFixed(2)}`}
-              valueClass="text-rose-600 dark:text-rose-400"
-              subtitle="Peças e despesas"
-            />
-
-            {/* 🏷️ Card de Descontos — NOVO */}
-            <MetricCard
-              label="Descontos"
-              icon={Tag}
-              iconClass="text-orange-500"
-              value={`R$ ${totalDescontos.toFixed(2)}`}
-              valueClass="text-orange-500 dark:text-orange-400"
-              borderClass="border-orange-500/30 dark:border-orange-500/40"
-              bgClass="bg-orange-500/5 dark:bg-orange-500/5 dark:bg-zinc-900"
-              subtitle={`${ordensComDesconto} OS com desconto`}
-              subtitleClass="text-orange-600/70 dark:text-orange-500/70"
-            />
-
-            {/* Lucro Real em Caixa */}
-            <MetricCard
-              label="Lucro Real"
+              label="Lucro Real em Caixa"
               labelClass="text-emerald-600 dark:text-emerald-400"
               value={`R$ ${lucroReal.toFixed(2)}`}
               valueClass="text-emerald-600 dark:text-emerald-400"
               borderClass="border-emerald-500/30 dark:border-emerald-500/40"
               bgClass="bg-emerald-500/10"
               subtitleClass="text-emerald-600 dark:text-emerald-500/80 font-medium"
-              subtitle="Caixa Líquido"
+              subtitle="Recebido − Custos"
               badge={
                 <span className="text-[9px] font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-full flex items-center">
                   <Percent className="w-2.5 h-2.5" /> {margemLucro.toFixed(0)}%
@@ -177,15 +198,107 @@ export default function Relatorios() {
               }
             />
 
+            {/* 8. Mão de Obra */}
             <MetricCard
               label="Mão de Obra"
               icon={Wrench}
               iconClass="text-purple-500"
               value={`R$ ${totalMaoObra.toFixed(2)}`}
               valueClass="text-purple-600 dark:text-purple-400"
-              subtitle="Total de serviços"
+              subtitle="Total de serviços prestados"
             />
 
+          </div>
+
+          {/* 🧮 Demonstrativo de Apuração de Lucro */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 space-y-4 shadow-xl transition-colors">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calculator className="w-4 h-4 text-emerald-500" />
+                <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-zinc-900 dark:text-white">
+                  Apuração de Lucro & Fluxo de Venda
+                </h3>
+              </div>
+              <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
+                Demonstrativo do resultado
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-center text-center">
+              {/* 1. Total Venda */}
+              <div className="bg-zinc-50 dark:bg-zinc-950 p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block mb-1">
+                  1. Total Venda (Bruto)
+                </span>
+                <p className="text-base sm:text-lg font-black text-zinc-900 dark:text-white">
+                  R$ {totalVendasBruto.toFixed(2)}
+                </p>
+                <span className="text-[10px] text-zinc-400 block mt-0.5">Sem descontos</span>
+              </div>
+
+              {/* Menos Desconto */}
+              <div className="flex md:flex-col items-center justify-center gap-1 text-orange-500">
+                <Minus className="w-4 h-4 hidden md:block" />
+                <span className="text-xs font-bold md:hidden">− Desconto:</span>
+                <div className="bg-orange-500/10 border border-orange-500/20 px-3 py-1 rounded-lg">
+                  <span className="text-xs font-bold">− R$ {totalDescontos.toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* 2. Faturado Líquido */}
+              <div className="bg-zinc-50 dark:bg-zinc-950 p-3.5 rounded-xl border border-blue-500/30">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500 block mb-1">
+                  2. Faturado (Líquido)
+                </span>
+                <p className="text-base sm:text-lg font-black text-blue-600 dark:text-blue-400">
+                  R$ {faturamentoTotal.toFixed(2)}
+                </p>
+                <span className="text-[10px] text-zinc-400 block mt-0.5">Venda − Desconto</span>
+              </div>
+
+              {/* Menos Custo */}
+              <div className="flex md:flex-col items-center justify-center gap-1 text-rose-500">
+                <Minus className="w-4 h-4 hidden md:block" />
+                <span className="text-xs font-bold md:hidden">− Custo Peças:</span>
+                <div className="bg-rose-500/10 border border-rose-500/20 px-3 py-1 rounded-lg">
+                  <span className="text-xs font-bold">− R$ {custoTotal.toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* 3. Lucro Operacional */}
+              <div className="bg-emerald-500/10 p-3.5 rounded-xl border border-emerald-500/40">
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block mb-1">
+                  3. Lucro Operacional
+                </span>
+                <p className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400">
+                  R$ {(faturamentoTotal - custoTotal).toFixed(2)}
+                </p>
+                <span className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 block mt-0.5 font-bold">
+                  Margem: {margemLucro.toFixed(0)}%
+                </span>
+              </div>
+            </div>
+
+            {/* Resumo Caixa */}
+            <div className="pt-3 border-t border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row items-start sm:items-center justify-between text-xs gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-zinc-500 dark:text-zinc-400">Situação do Caixa:</span>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
+                  R$ {totalRecebido.toFixed(2)} recebido
+                </span>
+                {totalAReceber > 0 && (
+                  <span className="font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded">
+                    R$ {totalAReceber.toFixed(2)} a receber
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-zinc-500 dark:text-zinc-400">Lucro Real em Caixa (Recebido − Custo):</span>
+                <span className={`font-black text-sm ${lucroReal >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                  R$ {lucroReal.toFixed(2)}
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* ⚠️ Painel de Cobrança / Contas a Receber */}

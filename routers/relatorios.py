@@ -119,6 +119,7 @@ def obter_estatisticas(
 
         # Acumuladores Financeiros
         faturamento_total = 0.0
+        total_vendas_bruto = 0.0
         total_recebido = 0.0
         total_a_receber = 0.0
         total_descontos = 0.0
@@ -143,6 +144,7 @@ def obter_estatisticas(
             saldo_restante = max(0.0, tot - pago)
 
             faturamento_total += tot
+            total_vendas_bruto += max(tot + desc, pec + mo)
             total_recebido += pago
             total_a_receber += saldo_restante
             total_descontos += desc
@@ -281,6 +283,7 @@ def obter_estatisticas(
         return {
             "periodo": periodo,
             "total_ordens": total_ordens,
+            "total_vendas_bruto": total_vendas_bruto,
             "faturamento_total": faturamento_total,
             "total_recebido": total_recebido,
             "total_a_receber": total_a_receber,
