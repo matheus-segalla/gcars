@@ -117,6 +117,7 @@ export default function Buscador() {
       mao_obra: os.mao_obra || 0,
       desconto: os.desconto || 0,
       valor_pago: os.valor_pago || 0,
+      custo: os.custo || 0,
       servicos: (os.servicos || []).join('\n')
     });
   };
@@ -129,6 +130,7 @@ export default function Buscador() {
     const maoObraNum = parseFloat(osEditando.mao_obra) || 0;
     const descontoNum = parseFloat(osEditando.desconto) || 0;
     const pagoNum = parseFloat(osEditando.valor_pago) || 0;
+    const custoNum = parseFloat(osEditando.custo) || 0;
 
     const payload = {
       numero: osEditando.numero,
@@ -144,6 +146,7 @@ export default function Buscador() {
       mao_obra: maoObraNum,
       desconto: descontoNum,
       valor_pago: pagoNum,
+      custo: custoNum,
       servicos: osEditando.servicos.split('\n').filter(s => s.trim() !== '')
     };
 
@@ -166,8 +169,10 @@ export default function Buscador() {
   const modalMaoObra = parseFloat(osEditando?.mao_obra || 0);
   const modalDesconto = parseFloat(osEditando?.desconto || 0);
   const modalPago = parseFloat(osEditando?.valor_pago || 0);
+  const modalCusto = parseFloat(osEditando?.custo || 0);
   const modalTotal = Math.max(0, (modalPecas + modalMaoObra) - modalDesconto);
   const modalRestante = Math.max(0, modalTotal - modalPago);
+  const modalLucro = modalTotal - modalCusto;
 
   return (
     <div className="space-y-6">
@@ -589,6 +594,31 @@ export default function Buscador() {
                       <span className={`text-base font-black ${modalRestante > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                         R$ {modalRestante.toFixed(2)} {modalRestante === 0 && '✓ Liquidado'}
                       </span>
+                    </div>
+                  </div>
+
+                  {/* 🔒 Custo Interno & Lucro (uso interno — não aparece para o cliente) */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-2.5 border-t border-dashed border-zinc-300 dark:border-zinc-700">
+                    <div>
+                      <label className="text-rose-600 dark:text-rose-400 mb-1 block font-bold flex items-center gap-1">
+                        🔒 Custo Interno (R$)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={osEditando.custo}
+                        onChange={e => setOsEditando({ ...osEditando, custo: e.target.value })}
+                        className="w-full bg-white dark:bg-zinc-900 border border-rose-500/40 rounded-lg p-2.5 text-rose-600 dark:text-rose-400 font-bold outline-none"
+                        placeholder="Custo das peças/insumos"
+                      />
+                      <span className="text-[10px] text-zinc-400 mt-0.5 block">Não aparece para o cliente</span>
+                    </div>
+                    <div className="flex flex-col justify-center">
+                      <span className="text-zinc-500 dark:text-zinc-400 text-[11px]">Lucro Estimado:</span>
+                      <span className={`text-base font-black ${modalLucro >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                        R$ {modalLucro.toFixed(2)} {modalLucro >= 0 ? '📈' : '📉'}
+                      </span>
+                      <span className="text-[10px] text-zinc-400">Total ({modalTotal.toFixed(2)}) − Custo ({modalCusto.toFixed(2)})</span>
                     </div>
                   </div>
                 </div>

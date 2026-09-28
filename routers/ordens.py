@@ -316,6 +316,7 @@ def atualizar_ordem_servico(
         os_item.total = total_liquido
         os_item.valor_pago = valor_pago
         os_item.status_pagamento = status
+        os_item.custo = float(payload.custo or 0.0)
 
         # Atualiza Serviços
         if payload.servicos is not None:
