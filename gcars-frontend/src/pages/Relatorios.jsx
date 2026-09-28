@@ -12,12 +12,22 @@ import {
   Clock,
   Tag,
   Calculator,
-  Minus,
-  Receipt
+  Receipt,
+  TrendingUp,
+  Wallet,
+  Package,
+  Layers,
+  Sparkles
 } from 'lucide-react';
 import api from '../services/api';
 import { useNotification } from '../contexts/NotificationContext';
-import MetricCard from '../components/MetricCard';
+
+const formatarMoeda = (valor) => {
+  return Number(valor || 0).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  });
+};
 
 export default function Relatorios() {
   const { showToast } = useNotification();
@@ -56,14 +66,20 @@ export default function Relatorios() {
   const totalAReceber = Number(dadosEstatisticas?.total_a_receber || 0);
   const totalOrdens = Number(dadosEstatisticas?.total_ordens || 0);
   const totalMaoObra = Number(dadosEstatisticas?.total_mao_obra || 0);
+  const totalPecas = Number(dadosEstatisticas?.total_pecas || 0);
   const custoTotal = Number(dadosEstatisticas?.custo_total || 0);
   const lucroReal = Number(dadosEstatisticas?.lucro_real || 0);
   const margemLucro = Number(dadosEstatisticas?.margem_lucro || 0);
+  const ticketMedio = Number(dadosEstatisticas?.ticket_medio || 0);
   const ordensComDesconto = Number(dadosEstatisticas?.ordens_com_desconto || 0);
 
   const formasPagamento = Array.isArray(dadosEstatisticas?.formas_pagamento) ? dadosEstatisticas.formas_pagamento : [];
   const topServicos = Array.isArray(dadosEstatisticas?.top_servicos) ? dadosEstatisticas.top_servicos : [];
   const pendencias = Array.isArray(dadosEstatisticas?.pendencias) ? dadosEstatisticas.pendencias : [];
+
+  const percRecebido = faturamentoTotal > 0
+    ? Math.min(100, Math.round((totalRecebido / faturamentoTotal) * 100))
+    : 100;
 
   return (
     <div className="space-y-8">
@@ -112,193 +128,277 @@ export default function Relatorios() {
         </div>
       ) : (
         <>
-          {/* 📊 Painel de Métricas (8 Cards) */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          {/* 🌟 3 Grandes Indicadores Mestres (Visão Executiva) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
-            {/* 1. Total Vendas Bruto */}
-            <MetricCard
-              label="Total Vendas (Bruto)"
-              icon={Receipt}
-              iconClass="text-zinc-600 dark:text-zinc-300"
-              value={`R$ ${totalVendasBruto.toFixed(2)}`}
-              valueClass="text-zinc-900 dark:text-white"
-              subtitle="Valor total sem descontos"
-            />
-
-            {/* 2. Descontos Concedidos */}
-            <MetricCard
-              label="Descontos"
-              icon={Tag}
-              iconClass="text-orange-500"
-              value={`- R$ ${totalDescontos.toFixed(2)}`}
-              valueClass="text-orange-500 dark:text-orange-400"
-              borderClass="border-orange-500/30 dark:border-orange-500/40"
-              bgClass="bg-orange-500/5 dark:bg-zinc-900"
-              subtitle={`${ordensComDesconto} OS com desconto`}
-              subtitleClass="text-orange-600/70 dark:text-orange-500/70"
-            />
-
-            {/* 3. Faturado Líquido */}
-            <MetricCard
-              label="Faturado (Líquido)"
-              icon={DollarSign}
-              iconClass="text-blue-500"
-              value={`R$ ${faturamentoTotal.toFixed(2)}`}
-              valueClass="text-blue-600 dark:text-blue-400"
-              subtitle={`${totalOrdens} OS (Bruto − Desconto)`}
-            />
-
-            {/* 4. Custo de Peças */}
-            <MetricCard
-              label="Custo de Peças"
-              icon={ArrowDownRight}
-              iconClass="text-rose-500"
-              value={`R$ ${custoTotal.toFixed(2)}`}
-              valueClass="text-rose-600 dark:text-rose-400"
-              subtitle="Custo interno de peças"
-            />
-
-            {/* 5. Em Caixa (Recebido) */}
-            <MetricCard
-              label="Em Caixa (Recebido)"
-              labelClass="text-emerald-600 dark:text-emerald-400"
-              icon={CreditCard}
-              iconClass="text-emerald-500"
-              value={`R$ ${totalRecebido.toFixed(2)}`}
-              valueClass="text-emerald-600 dark:text-emerald-400"
-              subtitle="Valor pago pelos clientes"
-            />
-
-            {/* 6. A Receber */}
-            <MetricCard
-              label="A Receber"
-              labelClass="text-amber-500"
-              icon={Clock}
-              iconClass="text-amber-500"
-              value={`R$ ${totalAReceber.toFixed(2)}`}
-              valueClass="text-amber-500"
-              borderClass="border-amber-500/30 dark:border-amber-500/40"
-              subtitle={`${pendencias.length} saldo(s) pendente(s)`}
-            />
-
-            {/* 7. Lucro Real */}
-            <MetricCard
-              label="Lucro Real em Caixa"
-              labelClass="text-emerald-600 dark:text-emerald-400"
-              value={`R$ ${lucroReal.toFixed(2)}`}
-              valueClass="text-emerald-600 dark:text-emerald-400"
-              borderClass="border-emerald-500/30 dark:border-emerald-500/40"
-              bgClass="bg-emerald-500/10"
-              subtitleClass="text-emerald-600 dark:text-emerald-500/80 font-medium"
-              subtitle="Recebido − Custos"
-              badge={
-                <span className="text-[9px] font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-full flex items-center">
-                  <Percent className="w-2.5 h-2.5" /> {margemLucro.toFixed(0)}%
+            {/* 1. Lucro Real no Caixa (Destaque Principal) */}
+            <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-white dark:to-zinc-900 border-2 border-emerald-500/40 dark:border-emerald-500/50 rounded-2xl p-5 shadow-xl transition-all">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-emerald-500/20 rounded-xl text-emerald-600 dark:text-emerald-400">
+                    <TrendingUp className="w-5 h-5 stroke-[2.5]" />
+                  </div>
+                  <span className="text-xs font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                    Lucro Real em Caixa
+                  </span>
+                </div>
+                <span className="text-[11px] font-black bg-emerald-500 text-white px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                  <Percent className="w-3 h-3 stroke-[3]" /> {margemLucro.toFixed(0)}% margem
                 </span>
-              }
-            />
+              </div>
 
-            {/* 8. Mão de Obra */}
-            <MetricCard
-              label="Mão de Obra"
-              icon={Wrench}
-              iconClass="text-purple-500"
-              value={`R$ ${totalMaoObra.toFixed(2)}`}
-              valueClass="text-purple-600 dark:text-purple-400"
-              subtitle="Total de serviços prestados"
-            />
+              <p className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
+                {formatarMoeda(lucroReal)}
+              </p>
+
+              <div className="mt-3 pt-3 border-t border-emerald-500/20 text-xs text-zinc-600 dark:text-zinc-400 flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <span>Recebido no caixa:</span>
+                  <span className="font-bold text-zinc-900 dark:text-white">{formatarMoeda(totalRecebido)}</span>
+                </div>
+                <div className="flex items-center justify-between text-rose-600 dark:text-rose-400">
+                  <span>(−) Custo das peças:</span>
+                  <span className="font-bold">− {formatarMoeda(custoTotal)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Faturamento da Oficina */}
+            <div className="bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-white dark:to-zinc-900 border border-blue-500/30 dark:border-blue-500/40 rounded-2xl p-5 shadow-xl transition-all">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-blue-500/20 rounded-xl text-blue-600 dark:text-blue-400">
+                    <DollarSign className="w-5 h-5 stroke-[2.5]" />
+                  </div>
+                  <span className="text-xs font-black uppercase tracking-wider text-blue-700 dark:text-blue-400">
+                    Faturamento Líquido
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/20 px-2 py-0.5 rounded-md">
+                  {totalOrdens} OS no período
+                </span>
+              </div>
+
+              <p className="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400 tracking-tight">
+                {formatarMoeda(faturamentoTotal)}
+              </p>
+
+              <div className="mt-3 pt-3 border-t border-blue-500/20 text-xs text-zinc-600 dark:text-zinc-400 flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <span>Venda Bruta (Total):</span>
+                  <span className="font-bold text-zinc-900 dark:text-white">{formatarMoeda(totalVendasBruto)}</span>
+                </div>
+                <div className="flex items-center justify-between text-orange-600 dark:text-orange-400">
+                  <span>(−) Descontos concedidos:</span>
+                  <span className="font-bold">− {formatarMoeda(totalDescontos)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Situação do Caixa / Recebimento */}
+            <div className="bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-white dark:to-zinc-900 border border-purple-500/30 dark:border-purple-500/40 rounded-2xl p-5 shadow-xl transition-all">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-purple-500/20 rounded-xl text-purple-600 dark:text-purple-400">
+                    <Wallet className="w-5 h-5 stroke-[2.5]" />
+                  </div>
+                  <span className="text-xs font-black uppercase tracking-wider text-purple-700 dark:text-purple-400">
+                    Dinheiro em Caixa
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/20 px-2 py-0.5 rounded-md">
+                  {percRecebido}% liquidado
+                </span>
+              </div>
+
+              <p className="text-2xl sm:text-3xl font-black text-purple-600 dark:text-purple-400 tracking-tight">
+                {formatarMoeda(totalRecebido)}
+              </p>
+
+              <div className="mt-3 pt-3 border-t border-purple-500/20 text-xs text-zinc-600 dark:text-zinc-400 flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <span>Saldo a receber:</span>
+                  <span className={`font-bold ${totalAReceber > 0 ? 'text-amber-500' : 'text-emerald-500'}`}>
+                    {totalAReceber > 0 ? formatarMoeda(totalAReceber) : 'Tudo quitado ✓'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-zinc-500 dark:text-zinc-400">
+                  <span>Pendências de clientes:</span>
+                  <span className="font-semibold">{pendencias.length} ordem(ns)</span>
+                </div>
+              </div>
+            </div>
 
           </div>
 
-          {/* 🧮 Demonstrativo de Apuração de Lucro */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 space-y-4 shadow-xl transition-colors">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Calculator className="w-4 h-4 text-emerald-500" />
-                <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-zinc-900 dark:text-white">
-                  Apuração de Lucro & Fluxo de Venda
-                </h3>
+          {/* 🧮 Painel Explicativo: Fluxo Financeiro & DRE da Oficina */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 sm:p-6 space-y-6 shadow-xl transition-colors">
+            
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-200 dark:border-zinc-800 pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Calculator className="w-5 h-5 text-red-500" />
+                  <h3 className="text-sm sm:text-base font-black uppercase tracking-wider text-zinc-900 dark:text-white">
+                    Fluxo Financeiro & Apuração do Lucro
+                  </h3>
+                </div>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                  Veja passo a passo como o valor bruto das vendas se transforma no lucro da oficina
+                </p>
               </div>
-              <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
-                Demonstrativo do resultado
+
+              <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-3 py-1 rounded-lg self-start sm:self-auto">
+                DRE Operacional
               </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-center text-center">
-              {/* 1. Total Venda */}
-              <div className="bg-zinc-50 dark:bg-zinc-950 p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block mb-1">
-                  1. Total Venda (Bruto)
-                </span>
-                <p className="text-base sm:text-lg font-black text-zinc-900 dark:text-white">
-                  R$ {totalVendasBruto.toFixed(2)}
-                </p>
-                <span className="text-[10px] text-zinc-400 block mt-0.5">Sem descontos</span>
-              </div>
-
-              {/* Menos Desconto */}
-              <div className="flex md:flex-col items-center justify-center gap-1 text-orange-500">
-                <Minus className="w-4 h-4 hidden md:block" />
-                <span className="text-xs font-bold md:hidden">− Desconto:</span>
-                <div className="bg-orange-500/10 border border-orange-500/20 px-3 py-1 rounded-lg">
-                  <span className="text-xs font-bold">− R$ {totalDescontos.toFixed(2)}</span>
+            {/* Passo a Passo em Linha Conectada */}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-stretch">
+              
+              {/* Passo 1: Venda Bruta */}
+              <div className="bg-zinc-50 dark:bg-zinc-950 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-wider mb-1">
+                    <span>1. Venda Bruta</span>
+                    <Receipt className="w-3.5 h-3.5 text-zinc-400" />
+                  </div>
+                  <p className="text-lg sm:text-xl font-black text-zinc-900 dark:text-white">
+                    {formatarMoeda(totalVendasBruto)}
+                  </p>
                 </div>
-              </div>
-
-              {/* 2. Faturado Líquido */}
-              <div className="bg-zinc-50 dark:bg-zinc-950 p-3.5 rounded-xl border border-blue-500/30">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500 block mb-1">
-                  2. Faturado (Líquido)
+                <span className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-2 pt-2 border-t border-zinc-200 dark:border-zinc-800 block">
+                  Peças + Mão de Obra
                 </span>
-                <p className="text-base sm:text-lg font-black text-blue-600 dark:text-blue-400">
-                  R$ {faturamentoTotal.toFixed(2)}
-                </p>
-                <span className="text-[10px] text-zinc-400 block mt-0.5">Venda − Desconto</span>
               </div>
 
-              {/* Menos Custo */}
-              <div className="flex md:flex-col items-center justify-center gap-1 text-rose-500">
-                <Minus className="w-4 h-4 hidden md:block" />
-                <span className="text-xs font-bold md:hidden">− Custo Peças:</span>
-                <div className="bg-rose-500/10 border border-rose-500/20 px-3 py-1 rounded-lg">
-                  <span className="text-xs font-bold">− R$ {custoTotal.toFixed(2)}</span>
+              {/* Passo 2: Descontos */}
+              <div className="bg-orange-500/5 dark:bg-orange-500/10 p-4 rounded-xl border border-orange-500/30 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between text-[11px] text-orange-600 dark:text-orange-400 font-bold uppercase tracking-wider mb-1">
+                    <span>2. Descontos</span>
+                    <Tag className="w-3.5 h-3.5 text-orange-500" />
+                  </div>
+                  <p className="text-lg sm:text-xl font-black text-orange-600 dark:text-orange-400">
+                    − {formatarMoeda(totalDescontos)}
+                  </p>
                 </div>
+                <span className="text-[10px] text-orange-600/80 dark:text-orange-400/80 mt-2 pt-2 border-t border-orange-500/20 block font-medium">
+                  {ordensComDesconto} OS com desconto
+                </span>
               </div>
 
-              {/* 3. Lucro Operacional */}
-              <div className="bg-emerald-500/10 p-3.5 rounded-xl border border-emerald-500/40">
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block mb-1">
-                  3. Lucro Operacional
-                </span>
-                <p className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400">
-                  R$ {(faturamentoTotal - custoTotal).toFixed(2)}
-                </p>
-                <span className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 block mt-0.5 font-bold">
-                  Margem: {margemLucro.toFixed(0)}%
+              {/* Passo 3: Faturado Líquido */}
+              <div className="bg-blue-500/5 dark:bg-blue-500/10 p-4 rounded-xl border border-blue-500/30 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between text-[11px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider mb-1">
+                    <span>3. Venda Líquida</span>
+                    <DollarSign className="w-3.5 h-3.5 text-blue-500" />
+                  </div>
+                  <p className="text-lg sm:text-xl font-black text-blue-600 dark:text-blue-400">
+                    = {formatarMoeda(faturamentoTotal)}
+                  </p>
+                </div>
+                <span className="text-[10px] text-blue-600/80 dark:text-blue-400/80 mt-2 pt-2 border-t border-blue-500/20 block font-medium">
+                  Valor final das ordens
                 </span>
               </div>
+
+              {/* Passo 4: Custo das Peças */}
+              <div className="bg-rose-500/5 dark:bg-rose-500/10 p-4 rounded-xl border border-rose-500/30 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between text-[11px] text-rose-600 dark:text-rose-400 font-bold uppercase tracking-wider mb-1">
+                    <span>4. Custo Peças</span>
+                    <ArrowDownRight className="w-3.5 h-3.5 text-rose-500" />
+                  </div>
+                  <p className="text-lg sm:text-xl font-black text-rose-600 dark:text-rose-400">
+                    − {formatarMoeda(custoTotal)}
+                  </p>
+                </div>
+                <span className="text-[10px] text-rose-600/80 dark:text-rose-400/80 mt-2 pt-2 border-t border-rose-500/20 block font-medium">
+                  Gasto em autopeças
+                </span>
+              </div>
+
+              {/* Passo 5: Lucro Final */}
+              <div className="bg-emerald-500/15 dark:bg-emerald-500/20 p-4 rounded-xl border-2 border-emerald-500/50 flex flex-col justify-between shadow-md">
+                <div>
+                  <div className="flex items-center justify-between text-[11px] text-emerald-700 dark:text-emerald-300 font-black uppercase tracking-wider mb-1">
+                    <span>5. Lucro Real</span>
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+                  </div>
+                  <p className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400">
+                    = {formatarMoeda(lucroReal)}
+                  </p>
+                </div>
+                <span className="text-[10px] text-emerald-700 dark:text-emerald-300 mt-2 pt-2 border-t border-emerald-500/30 block font-bold">
+                  {margemLucro.toFixed(0)}% margem líquida
+                </span>
+              </div>
+
             </div>
 
-            {/* Resumo Caixa */}
-            <div className="pt-3 border-t border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row items-start sm:items-center justify-between text-xs gap-2">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-zinc-500 dark:text-zinc-400">Situação do Caixa:</span>
-                <span className="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
-                  R$ {totalRecebido.toFixed(2)} recebido
+            {/* Detalhamento da Produção da Oficina */}
+            <div className="pt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              
+              <div className="bg-zinc-50 dark:bg-zinc-950 p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-500/10 rounded-lg text-purple-600 dark:text-purple-400">
+                    <Wrench className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">
+                      Mão de Obra (Serviços)
+                    </span>
+                    <p className="text-sm font-black text-zinc-900 dark:text-white">
+                      {formatarMoeda(totalMaoObra)}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded">
+                  100% oficina
                 </span>
-                {totalAReceber > 0 && (
-                  <span className="font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded">
-                    R$ {totalAReceber.toFixed(2)} a receber
-                  </span>
-                )}
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-zinc-500 dark:text-zinc-400">Lucro Real em Caixa (Recebido − Custo):</span>
-                <span className={`font-black text-sm ${lucroReal >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                  R$ {lucroReal.toFixed(2)}
+
+              <div className="bg-zinc-50 dark:bg-zinc-950 p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-500/10 rounded-lg text-blue-600 dark:text-blue-400">
+                    <Package className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">
+                      Peças Vendidas
+                    </span>
+                    <p className="text-sm font-black text-zinc-900 dark:text-white">
+                      {formatarMoeda(totalPecas)}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400">
+                  Custo: {formatarMoeda(custoTotal)}
                 </span>
               </div>
+
+              <div className="bg-zinc-50 dark:bg-zinc-950 p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-zinc-500/10 rounded-lg text-zinc-600 dark:text-zinc-400">
+                    <Layers className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">
+                      Ticket Médio por OS
+                    </span>
+                    <p className="text-sm font-black text-zinc-900 dark:text-white">
+                      {formatarMoeda(ticketMedio)}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400">
+                  {totalOrdens} ordens
+                </span>
+              </div>
+
             </div>
+
           </div>
 
           {/* ⚠️ Painel de Cobrança / Contas a Receber */}
@@ -312,7 +412,7 @@ export default function Relatorios() {
                   </h3>
                 </div>
                 <span className="text-xs font-bold text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
-                  Total Pendente: R$ {totalAReceber.toFixed(2)}
+                  Total Pendente: {formatarMoeda(totalAReceber)}
                 </span>
               </div>
 
@@ -325,7 +425,7 @@ export default function Relatorios() {
                         <h4 className="text-xs font-bold text-zinc-900 dark:text-white">{p.cliente}</h4>
                       </div>
                       <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                        Falta R$ {Number(p.restante || 0).toFixed(2)}
+                        Falta {formatarMoeda(p.restante)}
                       </span>
                     </div>
 
@@ -360,7 +460,7 @@ export default function Relatorios() {
                       <div className="flex justify-between text-xs font-medium">
                         <span className="text-zinc-700 dark:text-zinc-300">{item.metodo}</span>
                         <span className="font-bold text-zinc-900 dark:text-white">
-                          R$ {Number(item.valor || 0).toFixed(2)}
+                          {formatarMoeda(item.valor)}
                           <span className="text-zinc-500 font-normal ml-1">({Number(item.percentual || 0).toFixed(1)}%)</span>
                         </span>
                       </div>
