@@ -2,16 +2,64 @@ name: Supabase Keep Alive
 
 on:
   schedule:
-    # Executa todos os dias às 12:00 UTC
-    - cron: '0 12 * * *'
-  workflow_dispatch: # Permite rodar manualmente para testar
+    # Executa a cada 3 dias às 12:00 UTC (garante atividade bem antes do limite de 7 dias)
+    - cron: '0 12 */3 * *'
+  workflow_dispatch: # Permite disparar manualmente pelo botão "Run workflow" no GitHub
 
 jobs:
   ping-supabase:
+    name: Manter Supabase Ativo
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase REST API
+      - name: Verificar e Pingar API do Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY || secrets.SUPABASE_ANON_KEY }}
         run: |
-          curl -s -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/clientes?select=id&limit=1" \
-          -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-          -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"
+          echo "========================================================"
+          echo "📡 Rotina de Atividade do Supabase (Plano Gratuito)"
+          echo "Data/Hora UTC: $(date -u)"
+          echo "========================================================"
+
+          # 1. Validação de Secrets
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
+            echo "❌ ERRO: Secrets SUPABASE_URL ou SUPABASE_KEY não configuradas no repositório!"
+            echo "👉 Para corrigir:"
+            echo "   1. Acesse o GitHub: Settings -> Secrets and variables -> Actions"
+            echo "   2. Adicione SUPABASE_URL (ex: https://xxx.supabase.co)"
+            echo "   3. Adicione SUPABASE_KEY (chave anon ou secret do Supabase)"
+            exit 1
+          fi
+
+          # Remove barra final da URL caso exista
+          CLEAN_URL="${SUPABASE_URL%/}"
+
+          echo "🚀 Enviando requisição para $CLEAN_URL/rest/v1/clientes..."
+
+          # 2. Executa requisição com captura do código HTTP
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X GET \
+            "$CLEAN_URL/rest/v1/clientes?select=id&limit=1" \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_KEY")
+
+          echo "Código HTTP retornado: $HTTP_STATUS"
+
+          # 3. Validação do resultado
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+            echo "✅ SUCESSO! Supabase respondeu com HTTP $HTTP_STATUS."
+            echo "🎉 O projeto continuará 100% ativo e não entrará em pausa."
+          else
+            echo "⚠️ Tentando endpoint alternativo de schema..."
+            ALT_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X GET \
+              "$CLEAN_URL/rest/v1/" \
+              -H "apikey: $SUPABASE_KEY")
+            
+            echo "Código HTTP alternativo: $ALT_STATUS"
+
+            if [ "$ALT_STATUS" -ge 200 ] && [ "$ALT_STATUS" -lt 300 ]; then
+              echo "✅ SUCESSO! Schema do Supabase respondeu com HTTP $ALT_STATUS."
+            else
+              echo "❌ FALHA: A requisição retornou HTTP $HTTP_STATUS / $ALT_STATUS."
+              exit 1
+            fi
+          fi

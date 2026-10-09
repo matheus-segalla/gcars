@@ -1,7 +1,10 @@
-from database import Base, engine
-from fastapi import FastAPI
+import datetime
+from database import Base, engine, get_db
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import auth, extracao, funcionarios, lembretes, ordens, relatorios
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 # Garante criação de tabelas novas caso ainda não existam no banco
 try:
@@ -30,3 +33,28 @@ app.include_router(lembretes.router)
 @app.get("/")
 def home():
     return {"status": "GCARS API Online"}
+
+
+@app.get("/api/health")
+@app.get("/health")
+def health_check(db: Session = Depends(get_db)):
+    """
+    Endpoint de health check e keep-alive.
+    Executa uma query no banco de dados para manter conexões e projetos Supabase ativos.
+    """
+    timestamp = datetime.datetime.utcnow().isoformat()
+    try:
+        db.execute(text("SELECT 1"))
+        return {
+            "status": "online",
+            "database": "conectado",
+            "timestamp": timestamp,
+            "mensagem": "Servidor e banco de dados operacionais.",
+        }
+    except Exception as e:
+        return {
+            "status": "online",
+            "database": f"erro: {str(e)}",
+            "timestamp": timestamp,
+            "mensagem": "Servidor ativo, mas houve falha na consulta ao banco.",
+        }
