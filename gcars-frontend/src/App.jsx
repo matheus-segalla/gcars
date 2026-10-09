@@ -11,6 +11,7 @@ const LandingPage = lazy(() => import('./pages/LandingPage'));
 const Login = lazy(() => import('./pages/Login'));
 const Digitalizar = lazy(() => import('./pages/Digitalizar'));
 const Buscador = lazy(() => import('./pages/Buscador'));
+const Avisos = lazy(() => import('./pages/Avisos'));
 const Relatorios = lazy(() => import('./pages/Relatorios'));
 const Equipe = lazy(() => import('./pages/Equipe'));
 
@@ -41,6 +42,7 @@ function AdminLayout() {
           <Routes>
             <Route path="/" element={<Digitalizar />} />
             <Route path="/buscar" element={<Buscador />} />
+            <Route path="/avisos" element={<Avisos />} />
             <Route path="/relatorios" element={<Relatorios />} />
             <Route path="/equipe" element={<Equipe />} />
           </Routes>

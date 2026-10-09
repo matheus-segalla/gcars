@@ -50,3 +50,23 @@ class OrdemServicoUpdate(BaseModel):
     valor_pago: Optional[float] = 0.0
     custo: Optional[float] = 0.0
     servicos: Optional[List[str]] = []
+
+
+class LembreteCreate(BaseModel):
+    titulo: str
+    data_lembrete: str  # YYYY-MM-DD
+    cliente_nome: Optional[str] = None
+    cliente_telefone: Optional[str] = None
+    veiculo_info: Optional[str] = None
+    observacoes: Optional[str] = None
+    ordem_id: Optional[int] = None
+
+
+class LembreteUpdate(BaseModel):
+    titulo: Optional[str] = None
+    data_lembrete: Optional[str] = None
+    cliente_nome: Optional[str] = None
+    cliente_telefone: Optional[str] = None
+    veiculo_info: Optional[str] = None
+    observacoes: Optional[str] = None
+    status: Optional[str] = None

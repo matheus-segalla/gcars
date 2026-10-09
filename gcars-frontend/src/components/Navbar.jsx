@@ -1,12 +1,36 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Car, Camera, Search, BarChart3, Users, LogOut } from 'lucide-react';
+import { Car, Camera, Search, BarChart3, Users, LogOut, Bell } from 'lucide-react';
 import { useNotification } from '../contexts/NotificationContext';
 import ThemeToggle from './ThemeToggle';
+import api from '../services/api';
 
 export default function Navbar() {
   const navigate = useNavigate();
   const { showConfirm } = useNotification();
+  const [totalAlertas, setTotalAlertas] = useState(0);
+
+  useEffect(() => {
+    let montado = true;
+    async function checarAlertas() {
+      try {
+        const res = await api.get('/api/lembretes/contadores');
+        if (montado && res.data) {
+          // Destaca vencidos + hoje; se não houver, mostra próximos 7 dias
+          const urgentes = (res.data.vencidos || 0) + (res.data.hoje || 0);
+          setTotalAlertas(urgentes > 0 ? urgentes : 0);
+        }
+      } catch {
+        // Silencioso se o backend estiver iniciando
+      }
+    }
+    checarAlertas();
+    const interval = setInterval(checarAlertas, 60000);
+    return () => {
+      montado = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   const handleLogout = () => {
     showConfirm({
@@ -25,6 +49,7 @@ export default function Navbar() {
   const navItems = [
     { to: '/admin', label: 'Digitalizar', icon: Camera, end: true },
     { to: '/admin/buscar', label: 'Buscador', icon: Search },
+    { to: '/admin/avisos', label: 'Avisos', icon: Bell, badge: totalAlertas },
     { to: '/admin/relatorios', label: 'Relatórios', icon: BarChart3 },
     { to: '/admin/equipe', label: 'Equipe', icon: Users },
   ];
@@ -54,7 +79,7 @@ export default function Navbar() {
                   to={item.to}
                   end={item.end}
                   className={({ isActive }) =>
-                    `flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition uppercase tracking-wider ${
+                    `relative flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition uppercase tracking-wider ${
                       isActive
                         ? 'bg-red-600 text-white shadow-md'
                         : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
@@ -62,7 +87,13 @@ export default function Navbar() {
                   }
                 >
                   <Icon className="w-4 h-4" />
-                  {item.label}
+                  <span>{item.label}</span>
+
+                  {item.badge > 0 && (
+                    <span className="ml-1 px-1.5 py-0.2 bg-red-500 text-white text-[10px] font-black rounded-full animate-pulse shadow-sm">
+                      {item.badge}
+                    </span>
+                  )}
                 </NavLink>
               );
             })}
@@ -82,8 +113,9 @@ export default function Navbar() {
         </div>
       </header>
 
+      {/* Navegação Mobile Inferior */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-zinc-950/95 border-t border-zinc-200 dark:border-zinc-800/90 backdrop-blur-xl px-2 py-2 safe-area-pb transition-colors duration-200">
-        <div className="grid grid-cols-4 gap-1">
+        <div className="grid grid-cols-5 gap-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -92,14 +124,21 @@ export default function Navbar() {
                 to={item.to}
                 end={item.end}
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center py-2 px-1 rounded-xl transition duration-150 active:scale-95 ${
+                  `relative flex flex-col items-center justify-center py-2 px-1 rounded-xl transition duration-150 active:scale-95 ${
                     isActive
                       ? 'text-red-600 dark:text-red-500 bg-red-500/10 font-black'
                       : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 font-medium'
                   }`
                 }
               >
-                <Icon className="w-5 h-5 mb-1" />
+                <div className="relative">
+                  <Icon className="w-5 h-5 mb-1" />
+                  {item.badge > 0 && (
+                    <span className="absolute -top-1 -right-2 w-4 h-4 bg-red-600 text-white text-[9px] font-black rounded-full flex items-center justify-center shadow">
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
                 <span className="text-[10px] tracking-tight">{item.label}</span>
               </NavLink>
             );

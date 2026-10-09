@@ -84,6 +84,9 @@ class OrdemServicoModel(Base):
     itens = relationship(
         "ItemServicoModel", back_populates="ordem", cascade="all, delete-orphan"
     )
+    lembretes = relationship(
+        "LembreteModel", back_populates="ordem", cascade="all, delete-orphan"
+    )
 
 
 class ItemServicoModel(Base):
@@ -94,3 +97,25 @@ class ItemServicoModel(Base):
     ordem_id = Column(Integer, ForeignKey("ordens_servico.id"))
 
     ordem = relationship("OrdemServicoModel", back_populates="itens")
+
+
+class LembreteModel(Base):
+    __tablename__ = "lembretes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    titulo = Column(String(150), nullable=False)
+    cliente_nome = Column(String(120), nullable=True)
+    cliente_telefone = Column(String(30), nullable=True)
+    veiculo_info = Column(String(100), nullable=True)
+    data_lembrete = Column(String(10), nullable=False)  # YYYY-MM-DD
+    observacoes = Column(Text, nullable=True)
+    status = Column(String(20), default="pendente")  # pendente | concluido
+    ordem_id = Column(
+        Integer, ForeignKey("ordens_servico.id"), nullable=True
+    )
+    criado_em = Column(
+        DateTime(timezone=True), default=datetime.datetime.utcnow
+    )
+    concluido_em = Column(DateTime(timezone=True), nullable=True)
+
+    ordem = relationship("OrdemServicoModel", back_populates="lembretes")

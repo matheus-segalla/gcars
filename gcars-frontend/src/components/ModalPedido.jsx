@@ -5,13 +5,32 @@ import {
   User,
   Wrench,
   Image as ImageIcon,
-  ExternalLink
+  ExternalLink,
+  Bell,
+  Calendar,
+  Loader2
 } from 'lucide-react';
+import api from '../services/api';
+import { useNotification } from '../contexts/NotificationContext';
+
+function calcularDataRelativa(meses = 0, dias = 0) {
+  const d = new Date();
+  if (meses) d.setMonth(d.getMonth() + meses);
+  if (dias) d.setDate(d.getDate() + dias);
+  return d.toISOString().split('T')[0];
+}
 
 export default function ModalPedido({ isOpen, os, onClose }) {
   if (!isOpen || !os) return null;
 
+  const { showToast } = useNotification();
   const [fotoAmpliada, setFotoAmpliada] = useState(null);
+
+  // Estado do Lembrete Rápido a partir da OS
+  const [modalLembreteAberto, setModalLembreteAberto] = useState(false);
+  const [lembreteTitulo, setLembreteTitulo] = useState('');
+  const [lembreteData, setLembreteData] = useState(calcularDataRelativa(6));
+  const [salvandoLembrete, setSalvandoLembrete] = useState(false);
 
   const totalPecas = Number(os.pecas || 0);
   const totalMaoObra = Number(os.mao_obra || 0);
@@ -185,6 +204,36 @@ export default function ModalPedido({ isOpen, os, onClose }) {
     janelaPrint.document.close();
   };
 
+  const handleAbrirCriarLembrete = () => {
+    const primeiroServico = servicos[0] || 'Revisão Periódica / Troca de Óleo';
+    setLembreteTitulo(primeiroServico);
+    setLembreteData(calcularDataRelativa(6));
+    setModalLembreteAberto(true);
+  };
+
+  const handleSalvarLembreteRapido = async (e) => {
+    e.preventDefault();
+    if (!lembreteTitulo.trim()) return showToast('Informe o serviço do lembrete.', 'aviso');
+    setSalvandoLembrete(true);
+    try {
+      await api.post('/api/lembretes', {
+        titulo: lembreteTitulo.trim(),
+        data_lembrete: lembreteData,
+        cliente_nome: os.cliente || '',
+        cliente_telefone: '',
+        veiculo_info: `${os.veiculo || ''} ${os.ano ? `(${os.ano})` : ''} ${os.placa ? `- ${os.placa}` : ''}`.trim(),
+        ordem_id: os.id,
+        observacoes: `Agendado da OS #${os.numero_orcamento || os.id}`
+      });
+      showToast('Lembrete agendado com sucesso!', 'sucesso');
+      setModalLembreteAberto(false);
+    } catch (err) {
+      showToast('Erro ao criar lembrete.', 'erro');
+    } finally {
+      setSalvandoLembrete(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in duration-150">
 
@@ -210,6 +259,15 @@ export default function ModalPedido({ isOpen, os, onClose }) {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleAbrirCriarLembrete}
+              className="bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/60 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs active:scale-95"
+              title="Agendar lembrete para próxima revisão deste veículo"
+            >
+              <Bell className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Criar Lembrete</span>
+            </button>
             <button
               type="button"
               onClick={handleImprimir}
@@ -369,6 +427,123 @@ export default function ModalPedido({ isOpen, os, onClose }) {
           <div className="relative max-w-4xl max-h-[90vh]">
             <img src={fotoAmpliada} alt="Talão em tamanho real" className="rounded-xl max-h-[85vh] object-contain mx-auto" />
             <span className="text-xs text-zinc-400 block text-center mt-2">Clique em qualquer lugar para fechar</span>
+          </div>
+        </div>
+      )}
+
+      {/* ⏰ Modal Rápido de Agendamento de Lembrete da OS */}
+      {modalLembreteAberto && (
+        <div className="fixed inset-0 z-60 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="w-full max-w-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-5 sm:p-6 shadow-2xl text-xs space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-red-600/10 text-red-600 dark:text-red-500 rounded-xl">
+                  <Bell className="w-5 h-5 stroke-[2.5]" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-wider">
+                    Agendar Lembrete da OS #{os.numero_orcamento || os.id}
+                  </h4>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                    O sistema avisará na data para chamar o cliente
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalLembreteAberto(false)}
+                className="text-zinc-400 hover:text-zinc-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSalvarLembreteRapido} className="space-y-4">
+              <div>
+                <label className="text-zinc-700 dark:text-zinc-300 font-bold block mb-1">
+                  Serviço a lembrar:
+                </label>
+                <input
+                  type="text"
+                  value={lembreteTitulo}
+                  onChange={(e) => setLembreteTitulo(e.target.value)}
+                  placeholder="Ex: Troca de Óleo e Filtros"
+                  className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-xl p-2.5 text-xs text-zinc-900 dark:text-white font-semibold outline-none focus:border-red-500"
+                  required
+                />
+              </div>
+
+              {/* Informações da OS */}
+              <div className="p-3 bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-200 dark:border-zinc-800 text-[11px] space-y-1">
+                <div>
+                  <span className="text-zinc-400 font-bold">Cliente: </span>
+                  <strong className="text-zinc-800 dark:text-zinc-200">{os.cliente || 'Não informado'}</strong>
+                </div>
+                <div>
+                  <span className="text-zinc-400 font-bold">Veículo: </span>
+                  <span className="text-zinc-800 dark:text-zinc-200">
+                    {os.veiculo} {os.ano ? `(${os.ano})` : ''} {os.placa ? `• ${os.placa}` : ''}
+                  </span>
+                </div>
+              </div>
+
+              {/* Prazos rápidos */}
+              <div className="space-y-2">
+                <label className="text-zinc-700 dark:text-zinc-300 font-bold block text-[11px] uppercase tracking-wider">
+                  Quando lembrar? (Escolha ou altere a data):
+                </label>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {[
+                    { label: '+30 dias', dias: 30 },
+                    { label: '+6 meses', meses: 6 },
+                    { label: '+8 meses', meses: 8 },
+                    { label: '+1 ano', meses: 12 },
+                  ].map((at, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        const nova = at.meses
+                          ? calcularDataRelativa(at.meses, 0)
+                          : calcularDataRelativa(0, at.dias);
+                        setLembreteData(nova);
+                      }}
+                      className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 font-bold text-[10px] transition text-center"
+                    >
+                      {at.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="pt-2">
+                  <input
+                    type="date"
+                    value={lembreteData}
+                    onChange={(e) => setLembreteData(e.target.value)}
+                    className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 rounded-xl p-2.5 text-xs text-zinc-900 dark:text-white font-bold outline-none focus:border-red-500 cursor-pointer"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-200 dark:border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setModalLembreteAberto(false)}
+                  className="px-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={salvandoLembrete}
+                  className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold shadow-md flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {salvandoLembrete ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Bell className="w-3.5 h-3.5" />}
+                  <span>Salvar Lembrete</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
