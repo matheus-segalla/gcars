@@ -28,12 +28,11 @@ import { useNotification } from '../contexts/NotificationContext';
 // Sugestões de serviços frequentes para preenchimento com 1 clique
 const SUGESTOES_SERVICOS = [
   { label: 'Troca de Óleo e Filtros', meses: 6, icone: '🛢️' },
-  { label: 'Revisão de Freios / Pastilhas', meses: 8, icone: '🛑' },
+  { label: 'Revisão de Freios / Pastilhas', meses: 12, icone: '🛑' },
   { label: 'Alinhamento & Balanceamento', meses: 6, icone: '📐' },
   { label: 'Revisão Geral Preventiva', meses: 12, icone: '🔍' },
-  { label: 'Troca de Correia Dentada', meses: 12, icone: '⚙️' },
+  { label: 'Troca de Correia Dentada', meses: 48, icone: '⚙️' },
   { label: 'Líquido de Arrefecimento', meses: 12, icone: '❄️' },
-  { label: 'Velas de Ignição & Filtro Ar', meses: 8, icone: '⚡' },
 ];
 
 // Atalhos rápidos de prazo
@@ -45,6 +44,7 @@ const ATALHOS_PRAZO = [
   { label: '+7 meses', meses: 7 },
   { label: '+8 meses', meses: 8 },
   { label: '+1 ano (12 meses)', meses: 12 },
+  { label: '+4 anos (48 meses)', meses: 48 },
 ];
 
 // Calcula data ISO (YYYY-MM-DD) relativa a hoje
@@ -729,7 +729,9 @@ export default function Avisos() {
                       >
                         <span>{sug.icone}</span>
                         <span>{sug.label}</span>
-                        <span className="opacity-60 text-[9px]">({sug.meses}m)</span>
+                        <span className="opacity-60 text-[9px]">
+                          ({sug.meses >= 12 && sug.meses % 12 === 0 ? `${sug.meses / 12} ano${sug.meses > 12 ? 's' : ''}` : `${sug.meses}m`})
+                        </span>
                       </button>
                     ))}
                   </div>
