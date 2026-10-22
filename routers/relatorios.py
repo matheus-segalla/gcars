@@ -15,26 +15,10 @@ from models import (
     VeiculoModel,
 )
 from sqlalchemy.orm import Session
+from utils import converter_data_segura
 
 router = APIRouter(prefix="/api/relatorios", tags=["Relatórios & Estatísticas"])
 
-
-def converter_data_segura(data_val) -> Optional[datetime.date]:
-    if not data_val:
-        return None
-    if isinstance(data_val, datetime.date):
-        return data_val
-    if isinstance(data_val, datetime.datetime):
-        return data_val.date()
-
-    data_limpa = str(data_val).strip()
-    formatos = ["%d/%m/%Y", "%d/%m/%y", "%Y-%m-%d", "%d-%m-%Y"]
-    for fmt in formatos:
-        try:
-            return datetime.datetime.strptime(data_limpa, fmt).date()
-        except ValueError:
-            continue
-    return None
 
 def remover_acentos(texto: str) -> str:
     """Remove acentos e caracteres especiais para comparação uniforme."""
@@ -88,12 +72,23 @@ def normalizar_nome_servico(texto: str) -> str:
     return " ".join(resultado)
 @router.get("/estatisticas")
 def obter_estatisticas(
-    periodo: str = Query("mes", description="semana, mes, ano, geral"),
+    periodo: str = Query("mes", description="semana, mes, ano, geral, mes_especifico"),
+    mes_ano: Optional[str] = Query(None, description="Formato YYYY-MM para filtrar por mês específico"),
     db: Session = Depends(get_db),
 ):
     try:
         hoje = datetime.date.today()
         todas_ordens = db.query(OrdemServicoModel).all()
+
+        ano_alvo = None
+        mes_alvo = None
+        if mes_ano:
+            try:
+                partes = mes_ano.strip().split("-")
+                ano_alvo = int(partes[0])
+                mes_alvo = int(partes[1])
+            except Exception:
+                pass
 
         ordens_filtradas = []
         for os_item in todas_ordens:
@@ -104,7 +99,7 @@ def obter_estatisticas(
                 continue
 
             if periodo == "semana":
-                if (hoje - dt).days <= 7:
+                if 0 <= (hoje - dt).days <= 7:
                     ordens_filtradas.append(os_item)
             elif periodo == "mes":
                 if dt.month == hoje.month and dt.year == hoje.year:
@@ -112,6 +107,11 @@ def obter_estatisticas(
             elif periodo == "ano":
                 if dt.year == hoje.year:
                     ordens_filtradas.append(os_item)
+            elif (periodo == "mes_especifico" or mes_ano) and ano_alvo and mes_alvo:
+                if dt.year == ano_alvo and dt.month == mes_alvo:
+                    ordens_filtradas.append(os_item)
+            elif periodo == "geral":
+                ordens_filtradas.append(os_item)
             else:
                 ordens_filtradas.append(os_item)
 
@@ -282,6 +282,7 @@ def obter_estatisticas(
 
         return {
             "periodo": periodo,
+            "mes_ano": mes_ano,
             "total_ordens": total_ordens,
             "total_vendas_bruto": total_vendas_bruto,
             "faturamento_total": faturamento_total,

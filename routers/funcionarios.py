@@ -1,6 +1,8 @@
+import datetime
+from utils import converter_data_segura
 from typing import Optional
 from database import get_db
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from models import FuncionarioModel, OrdemServicoModel
 from schemas import FuncionarioCreate
 from sqlalchemy.orm import Session
@@ -50,17 +52,55 @@ def alternar_status(func_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/relatorio-desempenho")
-def relatorio_desempenho(db: Session = Depends(get_db)):
+def relatorio_desempenho(
+    periodo: str = Query("mes", description="mes, ano, geral, mes_especifico"),
+    mes_ano: Optional[str] = Query(None, description="Formato YYYY-MM para filtrar por mês específico"),
+    db: Session = Depends(get_db),
+):
     try:
+        hoje = datetime.date.today()
         funcionarios = db.query(FuncionarioModel).all()
         resultado = []
 
+        ano_alvo = None
+        mes_alvo = None
+        if mes_ano:
+            try:
+                partes = mes_ano.strip().split("-")
+                ano_alvo = int(partes[0])
+                mes_alvo = int(partes[1])
+            except Exception:
+                pass
+
         for f in funcionarios:
-            ordens = (
+            ordens_func = (
                 db.query(OrdemServicoModel)
                 .filter(OrdemServicoModel.funcionario_id == f.id)
                 .all()
             )
+
+            ordens = []
+            for o in ordens_func:
+                dt = converter_data_segura(o.data_os)
+                if not dt:
+                    if periodo == "geral":
+                        ordens.append(o)
+                    continue
+
+                if periodo == "mes":
+                    if dt.month == hoje.month and dt.year == hoje.year:
+                        ordens.append(o)
+                elif periodo == "ano":
+                    if dt.year == hoje.year:
+                        ordens.append(o)
+                elif (periodo == "mes_especifico" or mes_ano) and ano_alvo and mes_alvo:
+                    if dt.year == ano_alvo and dt.month == mes_alvo:
+                        ordens.append(o)
+                elif periodo == "geral":
+                    ordens.append(o)
+                else:
+                    ordens.append(o)
+
             total_servicos = len(ordens)
             total_mao_obra = sum(o.mao_obra or 0.0 for o in ordens)
             total_faturamento = sum(o.total or 0.0 for o in ordens)

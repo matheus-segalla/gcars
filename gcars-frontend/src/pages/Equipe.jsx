@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Users,
   UserPlus,
+  Calendar,
   Award,
   Loader2,
   Power,
@@ -10,8 +11,26 @@ import {
 import api from '../services/api';
 import { useNotification } from '../contexts/NotificationContext';
 
+const formatarMesAno = (mesAnoStr) => {
+  if (!mesAnoStr) return '';
+  const [ano, mes] = mesAnoStr.split('-');
+  const meses = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ];
+  const idx = parseInt(mes, 10) - 1;
+  return `${meses[idx] || mes} de ${ano}`;
+};
+
 export default function Equipe() {
   const { showToast, showConfirm } = useNotification();
+  const [periodo, setPeriodo] = useState('mes');
+  const [mesEspecifico, setMesEspecifico] = useState(() => {
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    return `${ano}-${mes}`;
+  });
   const [desempenho, setDesempenho] = useState([]);
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
@@ -19,10 +38,14 @@ export default function Equipe() {
   const [novoNome, setNovoNome] = useState('');
   const [novoCargo, setNovoCargo] = useState('Mecânico Geral');
 
-  const carregarDados = async () => {
+  const carregarDados = async (p = periodo, mesAno = mesEspecifico) => {
     setLoading(true);
     try {
-      const res = await api.get('/api/funcionarios/relatorio-desempenho');
+      let url = `/api/funcionarios/relatorio-desempenho?periodo=${p}`;
+      if (p === 'mes_especifico' && mesAno) {
+        url += `&mes_ano=${mesAno}`;
+      }
+      const res = await api.get(url);
       setDesempenho(res.data || []);
     } catch (err) {
       showToast('Erro ao carregar dados da equipe.', 'erro');
@@ -32,8 +55,8 @@ export default function Equipe() {
   };
 
   useEffect(() => {
-    carregarDados();
-  }, []);
+    carregarDados(periodo, mesEspecifico);
+  }, [periodo, mesEspecifico]);
 
   const handleExcluirFuncionario = (func) => {
     showConfirm({
@@ -136,6 +159,59 @@ export default function Equipe() {
             </button>
           </div>
         </form>
+      </div>
+
+      {/* 🧭 Seletor de Período do Desempenho */}
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl transition-colors duration-200">
+        <div className="flex items-center gap-2 text-zinc-900 dark:text-zinc-300">
+          <Calendar className="w-5 h-5 text-red-500" />
+          <div>
+            <span className="text-xs sm:text-sm font-black uppercase tracking-wider block">Período de Desempenho</span>
+            {periodo === 'mes_especifico' && mesEspecifico ? (
+              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
+                Filtrando por: <strong className="text-red-500">{formatarMesAno(mesEspecifico)}</strong>
+              </span>
+            ) : (
+              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
+                Filtre os serviços e faturamento por período
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          <div className="grid grid-cols-2 sm:flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-950 p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 w-full sm:w-auto">
+            {[
+              { id: 'mes', label: 'Este Mês' },
+              { id: 'ano', label: 'Este Ano' },
+              { id: 'geral', label: 'Histórico Geral' },
+              { id: 'mes_especifico', label: 'Mês Específico' },
+            ].map(p => (
+              <button
+                key={p.id}
+                onClick={() => setPeriodo(p.id)}
+                className={`px-3.5 py-2 rounded-lg text-xs font-bold transition uppercase tracking-wider ${
+                  periodo === p.id
+                    ? 'bg-red-600 text-white shadow-md'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          {periodo === 'mes_especifico' && (
+            <div className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-950 p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 animate-fadeIn">
+              <input
+                type="month"
+                value={mesEspecifico}
+                onChange={(e) => setMesEspecifico(e.target.value)}
+                className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white border border-zinc-300 dark:border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs font-bold uppercase tracking-wider outline-none focus:border-red-500 cursor-pointer"
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 📊 Relatório da Equipe */}

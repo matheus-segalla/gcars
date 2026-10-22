@@ -29,19 +29,40 @@ const formatarMoeda = (valor) => {
   });
 };
 
+const formatarMesAno = (mesAnoStr) => {
+  if (!mesAnoStr) return '';
+  const [ano, mes] = mesAnoStr.split('-');
+  const meses = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ];
+  const idx = parseInt(mes, 10) - 1;
+  return `${meses[idx] || mes} de ${ano}`;
+};
+
 export default function Relatorios() {
   const { showToast } = useNotification();
 
   const [periodo, setPeriodo] = useState('mes');
+  const [mesEspecifico, setMesEspecifico] = useState(() => {
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    return `${ano}-${mes}`;
+  });
   const [dadosEstatisticas, setDadosEstatisticas] = useState(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [erroStats, setErroStats] = useState(false);
 
-  const carregarEstatisticas = async (p = periodo) => {
+  const carregarEstatisticas = async (p = periodo, mesAno = mesEspecifico) => {
     setLoadingStats(true);
     setErroStats(false);
     try {
-      const res = await api.get(`/api/relatorios/estatisticas?periodo=${p}`);
+      let url = `/api/relatorios/estatisticas?periodo=${p}`;
+      if (p === 'mes_especifico' && mesAno) {
+        url += `&mes_ano=${mesAno}`;
+      }
+      const res = await api.get(url);
       setDadosEstatisticas(res.data);
     } catch (err) {
       console.error("Erro ao carregar relatório:", err);
@@ -53,8 +74,8 @@ export default function Relatorios() {
   };
 
   useEffect(() => {
-    carregarEstatisticas(periodo);
-  }, [periodo]);
+    carregarEstatisticas(periodo, mesEspecifico);
+  }, [periodo, mesEspecifico]);
 
   // Extração segura dos dados calculados
   const faturamentoTotal = Number(dadosEstatisticas?.faturamento_total || 0);
@@ -85,30 +106,51 @@ export default function Relatorios() {
     <div className="space-y-8">
 
       {/* 🧭 Seletor de Período */}
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl transition-colors duration-200">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl transition-colors duration-200">
         <div className="flex items-center gap-2 text-zinc-900 dark:text-zinc-300">
           <Calendar className="w-5 h-5 text-red-500" />
-          <span className="text-xs sm:text-sm font-black uppercase tracking-wider">Período de Análise</span>
+          <div>
+            <span className="text-xs sm:text-sm font-black uppercase tracking-wider block">Período de Análise</span>
+            {periodo === 'mes_especifico' && mesEspecifico && (
+              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
+                Filtrando por: <strong className="text-red-500">{formatarMesAno(mesEspecifico)}</strong>
+              </span>
+            )}
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-950 p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 w-full sm:w-auto">
-          {[
-            { id: 'semana', label: 'Esta Semana' },
-            { id: 'mes', label: 'Este Mês' },
-            { id: 'ano', label: 'Este Ano' },
-            { id: 'geral', label: 'Histórico Geral' },
-          ].map(p => (
-            <button
-              key={p.id}
-              onClick={() => setPeriodo(p.id)}
-              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition uppercase tracking-wider ${periodo === p.id
-                  ? 'bg-red-600 text-white shadow-md'
-                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
-                }`}
-            >
-              {p.label}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          <div className="grid grid-cols-2 sm:flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-950 p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 w-full sm:w-auto">
+            {[
+              { id: 'semana', label: 'Esta Semana' },
+              { id: 'mes', label: 'Este Mês' },
+              { id: 'ano', label: 'Este Ano' },
+              { id: 'geral', label: 'Histórico Geral' },
+              { id: 'mes_especifico', label: 'Mês Específico' },
+            ].map(p => (
+              <button
+                key={p.id}
+                onClick={() => setPeriodo(p.id)}
+                className={`px-3.5 py-2 rounded-lg text-xs font-bold transition uppercase tracking-wider ${periodo === p.id
+                    ? 'bg-red-600 text-white shadow-md'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                  }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          {periodo === 'mes_especifico' && (
+            <div className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-950 p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 animate-fadeIn">
+              <input
+                type="month"
+                value={mesEspecifico}
+                onChange={(e) => setMesEspecifico(e.target.value)}
+                className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white border border-zinc-300 dark:border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs font-bold uppercase tracking-wider outline-none focus:border-red-500 cursor-pointer"
+              />
+            </div>
+          )}
         </div>
       </div>
 
