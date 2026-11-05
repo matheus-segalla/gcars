@@ -218,48 +218,6 @@ def criar_ordem_servico(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{os_id}")
-def obter_ordem_servico(os_id: int, db: Session = Depends(get_db)):
-    os_item = (
-        db.query(OrdemServicoModel)
-        .filter(OrdemServicoModel.id == os_id)
-        .first()
-    )
-    if not os_item:
-        raise HTTPException(
-            status_code=404, detail="Ordem de serviço não encontrada."
-        )
-    return _serializar_ordem_detalhada(os_item)
-
-
-@router.patch("/{os_id}/custo")
-def atualizar_custo_os(
-    os_id: int, payload: AtualizarCustoSchema, db: Session = Depends(get_db)
-):
-    os_item = (
-        db.query(OrdemServicoModel)
-        .filter(OrdemServicoModel.id == os_id)
-        .first()
-    )
-    if not os_item:
-        raise HTTPException(
-            status_code=404, detail="Ordem de serviço não encontrada."
-        )
-    try:
-        os_item.custo = float(payload.custo or 0.0)
-        db.commit()
-        db.refresh(os_item)
-        return {
-            "sucesso": True,
-            "id": os_item.id,
-            "custo": os_item.custo,
-            "lucro": (os_item.total or 0.0) - os_item.custo,
-        }
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @router.get("/buscar")
 def buscar_ordens(
     q: Optional[str] = Query("", description="Termo de busca"),
@@ -305,6 +263,48 @@ def buscar_ordens(
         "total_paginas": total_paginas,
         "limite": limite,
     }
+
+
+@router.get("/{os_id}")
+def obter_ordem_servico(os_id: int, db: Session = Depends(get_db)):
+    os_item = (
+        db.query(OrdemServicoModel)
+        .filter(OrdemServicoModel.id == os_id)
+        .first()
+    )
+    if not os_item:
+        raise HTTPException(
+            status_code=404, detail="Ordem de serviço não encontrada."
+        )
+    return _serializar_ordem_detalhada(os_item)
+
+
+@router.patch("/{os_id}/custo")
+def atualizar_custo_os(
+    os_id: int, payload: AtualizarCustoSchema, db: Session = Depends(get_db)
+):
+    os_item = (
+        db.query(OrdemServicoModel)
+        .filter(OrdemServicoModel.id == os_id)
+        .first()
+    )
+    if not os_item:
+        raise HTTPException(
+            status_code=404, detail="Ordem de serviço não encontrada."
+        )
+    try:
+        os_item.custo = float(payload.custo or 0.0)
+        db.commit()
+        db.refresh(os_item)
+        return {
+            "sucesso": True,
+            "id": os_item.id,
+            "custo": os_item.custo,
+            "lucro": (os_item.total or 0.0) - os_item.custo,
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.delete("/{os_id}")
