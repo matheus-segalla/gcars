@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { Car, Camera, Search, BarChart3, Users, LogOut, Bell } from 'lucide-react';
+import { NavLink, useNavigate, Link } from 'react-router-dom';
+import { Camera, Search, BarChart3, Users, LogOut, Bell } from 'lucide-react';
 import { useNotification } from '../contexts/NotificationContext';
 import ThemeToggle from './ThemeToggle';
 import api from '../services/api';
@@ -59,15 +59,16 @@ export default function Navbar() {
       <header className="bg-white/90 dark:bg-zinc-900/90 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-40 backdrop-blur-md transition-colors duration-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="bg-red-600 p-2 rounded-xl text-white shadow-lg shadow-red-600/30">
-              <Car className="w-5 h-5 stroke-[2.5]" />
-            </div>
-            <div>
-              <span className="text-lg font-black italic tracking-wider text-zinc-900 dark:text-white">G CARS</span>
-              <span className="hidden sm:inline-block ml-2 text-[10px] uppercase font-bold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md border border-zinc-200 dark:border-zinc-700">
-                Painel Oficina
-              </span>
-            </div>
+            <Link to="/admin" className="flex items-center gap-2 bg-zinc-950 px-3 py-1 rounded-xl border border-zinc-800 shadow-md hover:border-red-500/50 transition">
+              <img
+                src="/logo.png"
+                alt="Logo GCARS"
+                className="h-8 w-auto object-contain"
+              />
+            </Link>
+            <span className="hidden sm:inline-block text-[10px] uppercase font-bold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700">
+              Painel Oficina
+            </span>
           </div>
 
           <nav className="hidden md:flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-950 p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 transition-colors">

@@ -9,6 +9,7 @@ import Navbar from './components/Navbar';
 // Lazy loading das páginas (Code-Splitting sob demanda)
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const Login = lazy(() => import('./pages/Login'));
+const RedefinirSenha = lazy(() => import('./pages/RedefinirSenha'));
 const Digitalizar = lazy(() => import('./pages/Digitalizar'));
 const Buscador = lazy(() => import('./pages/Buscador'));
 const Avisos = lazy(() => import('./pages/Avisos'));
@@ -60,6 +61,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/redefinir-senha" element={<RedefinirSenha />} />
 
             <Route
               path="/admin/*"

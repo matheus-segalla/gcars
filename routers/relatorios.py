@@ -70,6 +70,8 @@ def normalizar_nome_servico(texto: str) -> str:
         for i, p in enumerate(palavras)
     ]
     return " ".join(resultado)
+
+
 @router.get("/estatisticas")
 def obter_estatisticas(
     periodo: str = Query("mes", description="semana, mes, ano, geral, mes_especifico"),
@@ -162,26 +164,56 @@ def obter_estatisticas(
                 )
                 veiculo_obj = o.veiculo if o.veiculo else None
 
+                fotos_lista = []
+                if getattr(o, "fotos_json", None):
+                    try:
+                        fotos_lista = json.loads(o.fotos_json)
+                    except Exception:
+                        fotos_lista = []
+
+                servicos_lista = getattr(o, "itens", [])
+                servicos_nomes = [s.descricao for s in servicos_lista]
+
+                modelo_puro = veiculo_obj.modelo if veiculo_obj else ""
+                placa_pura = veiculo_obj.placa if (veiculo_obj and veiculo_obj.placa) else ""
+                ano_puro = veiculo_obj.ano if (veiculo_obj and veiculo_obj.ano) else ""
+                cor_pura = veiculo_obj.cor if (veiculo_obj and veiculo_obj.cor) else ""
+
                 ordens_pendentes.append({
                     "id": o.id,
                     "numero_orcamento": o.numero_orcamento,
                     "data": o.data_os,
+                    "km": o.km or "",
+                    "ano": ano_puro,
+                    "cor": cor_pura,
                     "cliente": (
                         cliente_obj.nome if cliente_obj else "Não informado"
                     ),
-                    "telefone": cliente_obj.telefone if cliente_obj else None,
+                    "telefone": cliente_obj.telefone if cliente_obj else "",
                     "veiculo": (
-                        f"{veiculo_obj.modelo} ({veiculo_obj.placa or 'Sem placa'})"
+                        f"{modelo_puro} ({placa_pura or 'Sem placa'})"
                         if veiculo_obj
                         else "Não informado"
                     ),
+                    "veiculo_modelo": modelo_puro,
+                    "placa": placa_pura,
                     "total": tot,
+                    "pecas": pec,
+                    "mao_obra": mo,
+                    "desconto": desc,
+                    "custo": cst,
                     "valor_pago": pago,
                     "restante": saldo_restante,
                     "status_pagamento": (
                         getattr(o, "status_pagamento", "pendente") or "pendente"
                     ),
-                    "forma_pagamento": o.forma_pagamento or "N/A",
+                    "forma_pagamento": o.forma_pagamento or "",
+                    "funcionario_id": o.funcionario_id,
+                    "mecanico": (
+                        o.funcionario.nome if o.funcionario else "Não atribuído"
+                    ),
+                    "fotos": fotos_lista,
+                    "servicos": servicos_nomes,
                 })
 
         ordens_pendentes.sort(key=lambda x: x["restante"], reverse=True)

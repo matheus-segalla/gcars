@@ -8,6 +8,7 @@ from models import (
     ClienteModel,
     FuncionarioModel,
     ItemServicoModel,
+    LembreteModel,
     OrdemServicoModel,
     VeiculoModel,
 )
@@ -15,6 +16,84 @@ from schemas import AtualizarCustoSchema, OrdemServicoCreate, OrdemServicoUpdate
 from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api/ordens-servico", tags=["Ordens de Serviço"])
+
+
+def _serializar_ordem_detalhada(o: OrdemServicoModel):
+    fotos_lista = []
+    if getattr(o, "fotos_json", None):
+        try:
+            fotos_lista = json.loads(o.fotos_json)
+        except Exception:
+            fotos_lista = []
+
+    servicos_lista = getattr(o, "itens", [])
+    servicos_nomes = [s.descricao for s in servicos_lista]
+
+    pecas_val = float(o.pecas or 0.0)
+    mao_obra_val = float(o.mao_obra or 0.0)
+    desconto_val = float(getattr(o, "desconto", 0.0) or 0.0)
+    custo_val = float(o.custo or 0.0)
+
+    total_val = float(o.total or 0.0)
+    if total_val == 0.0 and (pecas_val + mao_obra_val) > 0:
+        total_val = max(0.0, (pecas_val + mao_obra_val) - desconto_val)
+
+    valor_pago_val = float(getattr(o, "valor_pago", 0.0) or 0.0)
+    restante_val = max(0.0, total_val - valor_pago_val)
+    lucro_val = total_val - custo_val
+
+    status_pag = getattr(o, "status_pagamento", None)
+    if not status_pag:
+        if valor_pago_val >= total_val and total_val > 0:
+            status_pag = "pago"
+        elif valor_pago_val > 0:
+            status_pag = "parcial"
+        else:
+            status_pag = "pendente"
+
+    cliente_obj = o.veiculo.cliente if (o.veiculo and o.veiculo.cliente) else None
+    cliente_nome = cliente_obj.nome if cliente_obj else "Não informado"
+    cliente_tel = cliente_obj.telefone if cliente_obj else ""
+
+    veiculo_obj = o.veiculo if o.veiculo else None
+    modelo_puro = veiculo_obj.modelo if veiculo_obj else ""
+    placa_pura = veiculo_obj.placa if (veiculo_obj and veiculo_obj.placa) else ""
+    cor_pura = veiculo_obj.cor if (veiculo_obj and veiculo_obj.cor) else ""
+    ano_puro = veiculo_obj.ano if (veiculo_obj and veiculo_obj.ano) else ""
+
+    return {
+        "id": o.id,
+        "numero_orcamento": o.numero_orcamento,
+        "data": o.data_os,
+        "km": o.km or "",
+        "ano": ano_puro,
+        "cor": cor_pura,
+        "cliente": cliente_nome,
+        "telefone": cliente_tel or "",
+        "veiculo": (
+            f"{modelo_puro} ({placa_pura or 'Sem placa'})"
+            if veiculo_obj
+            else "Não informado"
+        ),
+        "veiculo_modelo": modelo_puro,
+        "placa": placa_pura,
+        "total": total_val,
+        "pecas": pecas_val,
+        "mao_obra": mao_obra_val,
+        "desconto": desconto_val,
+        "valor_pago": valor_pago_val,
+        "restante": restante_val,
+        "status_pagamento": status_pag,
+        "custo": custo_val,
+        "lucro": lucro_val,
+        "forma_pagamento": o.forma_pagamento or "",
+        "funcionario_id": o.funcionario_id,
+        "mecanico": (
+            o.funcionario.nome if o.funcionario else "Não atribuído"
+        ),
+        "fotos": fotos_lista,
+        "servicos": servicos_nomes,
+    }
 
 
 @router.post("")
@@ -28,9 +107,15 @@ def criar_ordem_servico(
             .first()
         )
         if not cliente:
-            cliente = ClienteModel(nome=os_in.cliente.strip())
+            cliente = ClienteModel(
+                nome=os_in.cliente.strip(),
+                telefone=os_in.telefone.strip() if os_in.telefone else None,
+            )
             db.add(cliente)
             db.flush()
+        else:
+            if os_in.telefone and os_in.telefone.strip() and not cliente.telefone:
+                cliente.telefone = os_in.telefone.strip()
 
         placa_limpa = os_in.placa.strip().upper() if os_in.placa else None
         veiculo = None
@@ -45,24 +130,36 @@ def criar_ordem_servico(
             veiculo = VeiculoModel(
                 modelo=os_in.veiculo.strip(),
                 placa=placa_limpa,
-                cor=os_in.cor,
-                ano=os_in.ano,
+                cor=os_in.cor.strip() if os_in.cor else None,
+                ano=os_in.ano.strip() if os_in.ano else None,
                 cliente_id=cliente.id,
             )
             db.add(veiculo)
             db.flush()
+        else:
+            if os_in.cor and os_in.cor.strip() and not veiculo.cor:
+                veiculo.cor = os_in.cor.strip()
+            if os_in.ano and os_in.ano.strip() and not veiculo.ano:
+                veiculo.ano = os_in.ano.strip()
 
         fotos_json_str = json.dumps(os_in.fotos or [])
+
+        pecas_val = os_in.pecas or 0.0
+        mao_obra_val = os_in.mao_obra or 0.0
+        total_val = pecas_val + mao_obra_val
 
         nova_os = OrdemServicoModel(
             numero_orcamento=os_in.numero.strip(),
             data_os=os_in.data.strip(),
             km=os_in.km,
             forma_pagamento=os_in.forma_pagamento,
-            pecas=os_in.pecas or 0.0,
-            mao_obra=os_in.mao_obra or 0.0,
+            pecas=pecas_val,
+            mao_obra=mao_obra_val,
             custo=os_in.custo or 0.0,
-            total=(os_in.pecas or 0.0) + (os_in.mao_obra or 0.0),
+            desconto=0.0,
+            valor_pago=0.0,
+            status_pagamento="pendente" if total_val > 0 else "pago",
+            total=total_val,
             fotos_json=fotos_json_str,
             veiculo_id=veiculo.id,
             funcionario_id=os_in.funcionario_id,
@@ -79,17 +176,60 @@ def criar_ordem_servico(
                     )
                     db.add(servico)
 
+        # 📅 Criação atômica de Lembrete se solicitado
+        lembrete_criado_id = None
+        if os_in.lembrete and os_in.lembrete.titulo and os_in.lembrete.data_lembrete:
+            tel_lembrete = (
+                os_in.lembrete.cliente_telefone.strip()
+                if os_in.lembrete.cliente_telefone
+                else (cliente.telefone or "")
+            )
+            novo_lembrete = LembreteModel(
+                titulo=os_in.lembrete.titulo.strip(),
+                cliente_nome=cliente.nome,
+                cliente_telefone=tel_lembrete or None,
+                veiculo_info=(
+                    f"{veiculo.modelo} ({veiculo.placa or 'Sem placa'})"
+                ).strip(),
+                data_lembrete=os_in.lembrete.data_lembrete.strip()[:10],
+                observacoes=(
+                    os_in.lembrete.observacoes.strip()
+                    if os_in.lembrete.observacoes
+                    else f"Lembrete preventivo criado junto à OS #{nova_os.numero_orcamento}"
+                ),
+                ordem_id=nova_os.id,
+                status="pendente",
+            )
+            db.add(novo_lembrete)
+            db.flush()
+            lembrete_criado_id = novo_lembrete.id
+
         db.commit()
         db.refresh(nova_os)
         return {
             "sucesso": True,
             "id": nova_os.id,
             "numero": nova_os.numero_orcamento,
+            "lembrete_id": lembrete_criado_id,
         }
     except Exception as e:
         db.rollback()
         print("❌ Erro ao salvar OS:", e)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{os_id}")
+def obter_ordem_servico(os_id: int, db: Session = Depends(get_db)):
+    os_item = (
+        db.query(OrdemServicoModel)
+        .filter(OrdemServicoModel.id == os_id)
+        .first()
+    )
+    if not os_item:
+        raise HTTPException(
+            status_code=404, detail="Ordem de serviço não encontrada."
+        )
+    return _serializar_ordem_detalhada(os_item)
 
 
 @router.patch("/{os_id}/custo")
@@ -156,81 +296,7 @@ def buscar_ordens(
         .all()
     )
 
-    itens = []
-    for o in ordens:
-        fotos_lista = []
-        if getattr(o, "fotos_json", None):
-            try:
-                fotos_lista = json.loads(o.fotos_json)
-            except Exception:
-                fotos_lista = []
-
-        servicos_lista = getattr(o, "itens", [])
-        servicos_nomes = [s.descricao for s in servicos_lista]
-
-        pecas_val = float(o.pecas or 0.0)
-        mao_obra_val = float(o.mao_obra or 0.0)
-        desconto_val = float(getattr(o, "desconto", 0.0) or 0.0)
-        custo_val = float(o.custo or 0.0)
-
-        total_val = float(o.total or 0.0)
-        if total_val == 0.0 and (pecas_val + mao_obra_val) > 0:
-            total_val = max(0.0, (pecas_val + mao_obra_val) - desconto_val)
-
-        valor_pago_val = float(getattr(o, "valor_pago", 0.0) or 0.0)
-        restante_val = max(0.0, total_val - valor_pago_val)
-        lucro_val = total_val - custo_val
-
-        status_pag = getattr(o, "status_pagamento", None)
-        if not status_pag:
-            if valor_pago_val >= total_val and total_val > 0:
-                status_pag = "pago"
-            elif valor_pago_val > 0:
-                status_pag = "parcial"
-            else:
-                status_pag = "pendente"
-
-        modelo_puro = o.veiculo.modelo if o.veiculo else ""
-        placa_pura = o.veiculo.placa if (o.veiculo and o.veiculo.placa) else ""
-
-        itens.append({
-            "id": o.id,
-            "numero_orcamento": o.numero_orcamento,
-            "data": o.data_os,
-            "km": o.km or "",
-            "ano": o.veiculo.ano or "" if o.veiculo else "",
-            "cliente": (
-                o.veiculo.cliente.nome
-                if o.veiculo and o.veiculo.cliente
-                else "Não informado"
-            ),
-            # String formatada mantida para não quebrar a tabela visual
-            "veiculo": (
-                f"{modelo_puro} ({placa_pura or 'Sem placa'})"
-                if o.veiculo
-                else "Não informado"
-            ),
-            # Campos limpos adicionados para preencher o formulário do modal
-            "veiculo_modelo": modelo_puro,
-            "placa": placa_pura,
-            "ano": o.veiculo.ano or "" if o.veiculo else "",
-            "total": total_val,
-            "pecas": pecas_val,
-            "mao_obra": mao_obra_val,
-            "desconto": desconto_val,
-            "valor_pago": valor_pago_val,
-            "restante": restante_val,
-            "status_pagamento": status_pag,
-            "custo": custo_val,
-            "lucro": lucro_val,
-            "forma_pagamento": o.forma_pagamento,
-            "funcionario_id": o.funcionario_id,
-            "mecanico": (
-                o.funcionario.nome if o.funcionario else "Não atribuído"
-            ),
-            "fotos": fotos_lista,
-            "servicos": servicos_nomes,
-        })
+    itens = [_serializar_ordem_detalhada(o) for o in ordens]
 
     return {
         "itens": itens,
@@ -260,6 +326,7 @@ def excluir_ordem(os_id: int, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.put("/{os_id}")
 def atualizar_ordem_servico(
     os_id: int, payload: OrdemServicoUpdate, db: Session = Depends(get_db)
@@ -278,6 +345,12 @@ def atualizar_ordem_servico(
         # Atualiza Cliente
         if payload.cliente and os_item.veiculo and os_item.veiculo.cliente:
             os_item.veiculo.cliente.nome = payload.cliente.strip()
+        if (
+            payload.telefone is not None
+            and os_item.veiculo
+            and os_item.veiculo.cliente
+        ):
+            os_item.veiculo.cliente.telefone = payload.telefone.strip() or None
 
         # Atualiza dados do Veículo de forma independente
         if os_item.veiculo:
@@ -287,6 +360,8 @@ def atualizar_ordem_servico(
                 os_item.veiculo.placa = payload.placa.strip().upper()
             if getattr(payload, "ano", None) is not None:
                 os_item.veiculo.ano = str(payload.ano).strip()
+            if getattr(payload, "cor", None) is not None:
+                os_item.veiculo.cor = str(payload.cor).strip() or None
 
         # Cálculos de Total e Status
         pecas = float(payload.pecas or 0.0)
@@ -318,6 +393,9 @@ def atualizar_ordem_servico(
         os_item.status_pagamento = status
         os_item.custo = float(payload.custo or 0.0)
 
+        if payload.fotos is not None:
+            os_item.fotos_json = json.dumps(payload.fotos)
+
         # Atualiza Serviços
         if payload.servicos is not None:
             db.query(ItemServicoModel).filter(
@@ -333,7 +411,11 @@ def atualizar_ordem_servico(
 
         db.commit()
         db.refresh(os_item)
-        return {"sucesso": True, "mensagem": "Ordem atualizada com sucesso!"}
+        return {
+            "sucesso": True,
+            "mensagem": "Ordem atualizada com sucesso!",
+            "ordem": _serializar_ordem_detalhada(os_item),
+        }
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))

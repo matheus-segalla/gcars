@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import { useNotification } from '../contexts/NotificationContext';
+import ModalEditarOS from '../components/ModalEditarOS';
 
 const formatarMoeda = (valor) => {
   return Number(valor || 0).toLocaleString('pt-BR', {
@@ -53,6 +54,7 @@ export default function Relatorios() {
   const [dadosEstatisticas, setDadosEstatisticas] = useState(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [erroStats, setErroStats] = useState(false);
+  const [osEditando, setOsEditando] = useState(null);
 
   const carregarEstatisticas = async (p = periodo, mesAno = mesEspecifico) => {
     setLoadingStats(true);
@@ -460,20 +462,37 @@ export default function Relatorios() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {pendencias.map(p => (
-                  <div key={p.id} className="bg-zinc-50 dark:bg-zinc-950 p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-2">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <span className="text-[10px] font-mono text-zinc-400">Talão #{p.numero_orcamento}</span>
-                        <h4 className="text-xs font-bold text-zinc-900 dark:text-white">{p.cliente}</h4>
+                  <div key={p.id} className="bg-zinc-50 dark:bg-zinc-950 p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-2.5 flex flex-col justify-between hover:border-amber-500/40 transition">
+                    <div>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <span className="text-[10px] font-mono text-zinc-400">Talão #{p.numero_orcamento}</span>
+                          <h4 className="text-xs font-bold text-zinc-900 dark:text-white">{p.cliente}</h4>
+                        </div>
+                        <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                          Falta {formatarMoeda(p.restante)}
+                        </span>
                       </div>
-                      <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                        Falta {formatarMoeda(p.restante)}
-                      </span>
+
+                      <div className="text-[11px] text-zinc-500 dark:text-zinc-400 flex items-center justify-between pt-2 border-t border-zinc-200 dark:border-zinc-800/60 mt-2">
+                        <span className="truncate pr-2">{p.veiculo}</span>
+                        <span className="shrink-0">{p.data}</span>
+                      </div>
                     </div>
 
-                    <div className="text-[11px] text-zinc-500 dark:text-zinc-400 flex items-center justify-between pt-1 border-t border-zinc-200 dark:border-zinc-800/60">
-                      <span className="truncate pr-2">{p.veiculo}</span>
-                      <span className="shrink-0">{p.data}</span>
+                    <div className="pt-2 border-t border-dashed border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                      <div className="text-[10px] text-zinc-400">
+                        Total: <strong className="text-zinc-700 dark:text-zinc-300">{formatarMoeda(p.total)}</strong>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setOsEditando(p)}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1.5 rounded-lg font-bold text-[11px] flex items-center gap-1.5 shadow-xs transition active:scale-95"
+                        title="Receber pagamento ou editar esta nota em aberto"
+                      >
+                        <DollarSign className="w-3.5 h-3.5" />
+                        <span>Receber / Editar</span>
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -553,6 +572,16 @@ export default function Relatorios() {
 
           </div>
         </>
+      )}
+
+      {/* ✏️ Modal de Edição & Baixa de Pagamento de Notas */}
+      {osEditando && (
+        <ModalEditarOS
+          isOpen={!!osEditando}
+          os={osEditando}
+          onClose={() => setOsEditando(null)}
+          onSaved={() => carregarEstatisticas(periodo, mesEspecifico)}
+        />
       )}
 
     </div>

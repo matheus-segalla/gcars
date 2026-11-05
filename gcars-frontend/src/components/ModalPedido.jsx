@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Printer,
@@ -8,10 +8,12 @@ import {
   ExternalLink,
   Bell,
   Calendar,
-  Loader2
+  Loader2,
+  Pencil
 } from 'lucide-react';
 import api from '../services/api';
 import { useNotification } from '../contexts/NotificationContext';
+import ModalEditarOS from './ModalEditarOS';
 
 function calcularDataRelativa(meses = 0, dias = 0) {
   const d = new Date();
@@ -20,11 +22,19 @@ function calcularDataRelativa(meses = 0, dias = 0) {
   return d.toISOString().split('T')[0];
 }
 
-export default function ModalPedido({ isOpen, os, onClose }) {
+export default function ModalPedido({ isOpen, os, onClose, onUpdate }) {
   if (!isOpen || !os) return null;
 
   const { showToast } = useNotification();
+  const [osAtual, setOsAtual] = useState(os);
   const [fotoAmpliada, setFotoAmpliada] = useState(null);
+
+  useEffect(() => {
+    setOsAtual(os);
+  }, [os]);
+
+  // Estado do Modal de Edição Completa da OS
+  const [modalEditarAberto, setModalEditarAberto] = useState(false);
 
   // Estado do Lembrete Rápido a partir da OS
   const [modalLembreteAberto, setModalLembreteAberto] = useState(false);
@@ -32,17 +42,17 @@ export default function ModalPedido({ isOpen, os, onClose }) {
   const [lembreteData, setLembreteData] = useState(calcularDataRelativa(6));
   const [salvandoLembrete, setSalvandoLembrete] = useState(false);
 
-  const totalPecas = Number(os.pecas || 0);
-  const totalMaoObra = Number(os.mao_obra || 0);
-  const desconto = Number(os.desconto || 0);
-  const totalGeral = Number(os.total || (totalPecas + totalMaoObra - desconto));
-  const valorPago = Number(os.valor_pago || 0);
+  const totalPecas = Number(osAtual.pecas || 0);
+  const totalMaoObra = Number(osAtual.mao_obra || 0);
+  const desconto = Number(osAtual.desconto || 0);
+  const totalGeral = Number(osAtual.total || (totalPecas + totalMaoObra - desconto));
+  const valorPago = Number(osAtual.valor_pago || 0);
   const saldoRestante = Math.max(0, totalGeral - valorPago);
-  const servicos = Array.isArray(os.servicos) ? os.servicos : [];
+  const servicos = Array.isArray(osAtual.servicos) ? osAtual.servicos : [];
 
   // Tratamento tolerante para fotos (array, string JSON ou null)
   let fotos = [];
-  const dadoBrutoFotos = os.fotos || os.fotos_json;
+  const dadoBrutoFotos = osAtual.fotos || osAtual.fotos_json;
 
   if (Array.isArray(dadoBrutoFotos)) {
     fotos = dadoBrutoFotos;
@@ -50,14 +60,14 @@ export default function ModalPedido({ isOpen, os, onClose }) {
     try {
       const parseado = JSON.parse(dadoBrutoFotos);
       fotos = Array.isArray(parseado) ? parseado : [];
-    } catch (e) {
+    } catch {
       if (dadoBrutoFotos.startsWith('http')) {
         fotos = [dadoBrutoFotos];
       }
     }
   }
 
-  // 🖨️ Função de Impressão Ultra-Compacta (Cabeçalho 3 Colunas + Sem Assinaturas)
+  // 🖨️ Função de Impressão Ultra-Compacta
   const handleImprimir = () => {
     const janelaPrint = window.open('', '_blank', 'width=900,height=700');
     if (!janelaPrint) return;
@@ -75,7 +85,7 @@ export default function ModalPedido({ isOpen, os, onClose }) {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Ordem de Serviço #${os.numero_orcamento || os.id}</title>
+        <title>Ordem de Serviço #${osAtual.numero_orcamento || osAtual.id}</title>
         <style>
           @page { size: A4 portrait; margin: 8mm 10mm; }
           * { box-sizing: border-box; }
@@ -88,14 +98,12 @@ export default function ModalPedido({ isOpen, os, onClose }) {
           .doc-info .num { font-size: 18px; font-weight: 900; color: #dc2626; margin: 0; }
           .doc-info .data { font-size: 11px; color: #4b5563; }
 
-          /* Grid Superior com 3 Colunas: Cliente, Carro e Financeiro */
           .grid-topo { display: grid; grid-template-columns: 1.2fr 1fr 1.3fr; gap: 8px; border: 1px solid #111827; border-radius: 6px; padding: 8px 10px; margin-bottom: 10px; background-color: #fafafa; }
           .info-group { margin-bottom: 4px; }
           .info-group:last-child { margin-bottom: 0; }
           .info-label { font-size: 9px; font-weight: bold; text-transform: uppercase; color: #6b7280; display: block; }
           .info-value { font-size: 12px; font-weight: bold; color: #111827; }
 
-          /* Bloco de Totais Compactado no Topo */
           .totais-box { border-left: 1px solid #d1d5db; padding-left: 10px; display: flex; flex-direction: column; justify-content: center; }
           .totais-linha { display: flex; justify-content: space-between; font-size: 11px; color: #4b5563; margin-bottom: 2px; }
           .total-destaque { font-size: 14px; font-weight: 900; color: #15803d; border-top: 1px solid #e5e7eb; padding-top: 3px; margin-top: 2px; }
@@ -103,7 +111,6 @@ export default function ModalPedido({ isOpen, os, onClose }) {
 
           .secao-titulo { font-size: 10px; font-weight: bold; text-transform: uppercase; color: #374151; margin-bottom: 4px; }
 
-          /* Tabela de Serviços Compacta */
           .table-servicos { width: 100%; border-collapse: collapse; border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden; margin-bottom: 8px; }
           .table-servicos th { background: #f3f4f6; text-align: left; padding: 5px 8px; font-size: 10px; text-transform: uppercase; color: #4b5563; border-bottom: 1px solid #e5e7eb; }
           .table-servicos td { padding: 4px 8px; border-bottom: 1px solid #f3f4f6; font-size: 11px; line-height: 1.25; }
@@ -111,47 +118,45 @@ export default function ModalPedido({ isOpen, os, onClose }) {
           .col-num { width: 35px; text-align: center; color: #6b7280; font-family: monospace; font-size: 10px; }
           .col-desc { color: #1f2937; }
 
-          /* Rodapé com Termos Legais em Linha Única */
           .termos-rodape { font-size: 9px; color: #6b7280; border-top: 1px solid #e5e7eb; padding-top: 4px; text-align: center; line-height: 1.3; }
         </style>
       </head>
       <body>
         <div class="header">
-          <div class="empresa">
-            <h1>G CARS</h1>
-            <p>Reparos & Serviços Automotivos</p>
+          <div class="empresa" style="display: flex; align-items: center; gap: 12px;">
+            <img src="/logo.png" alt="Logo GCARS" style="height: 50px; object-fit: contain;" />
+            <div>
+              <h1 style="margin: 0; font-size: 18px; font-weight: 900; letter-spacing: 0.5px;">GCARS REPAROS AUTOMOTIVOS</h1>
+              <p style="margin: 2px 0 0 0; font-size: 10px; font-weight: 700; color: #dc2626;">Excelência & Confiança desde 2017</p>
+            </div>
           </div>
           <div class="doc-info">
-            <div class="num">OS #${os.numero_orcamento || os.id}</div>
-            <div class="data">Data: <strong>${os.data}</strong></div>
+            <div class="num">OS #${osAtual.numero_orcamento || osAtual.id}</div>
+            <div class="data">Data: <strong>${osAtual.data}</strong></div>
           </div>
         </div>
 
-        <!-- Cabeçalho Consolidado em 3 Colunas -->
         <div class="grid-topo">
           <div>
             <div class="info-group">
               <span class="info-label">Cliente</span>
-              <span class="info-value">${os.cliente}</span>
+              <span class="info-value">${osAtual.cliente}</span>
             </div>
             <div class="info-group">
               <span class="info-label">Forma de Pagamento</span>
-              <span class="info-value">${os.forma_pagamento || 'A combinar'}</span>
+              <span class="info-value">${osAtual.forma_pagamento || 'A combinar'}</span>
             </div>
           </div>
 
           <div>
             <div class="info-group">
               <span class="info-label">Veículo / Placa</span>
-              <span class="info-value">${os.veiculo} ${os.ano ? `(${os.ano})` : ''}</span>
+              <span class="info-value">${osAtual.veiculo} ${osAtual.ano ? `(${osAtual.ano})` : ''}</span>
             </div>
             <div class="info-group">
               <span class="info-label">KM Atual</span>
-              <span class="info-value">${os.km ? os.km + ' km' : 'Não informado'}</span>
-            <span class="info-value">
-    ${os.veiculo} ${os.ano ? `• ${os.ano}` : ''}
-  </span>
-              </div>
+              <span class="info-value">${osAtual.km ? osAtual.km + ' km' : 'Não informado'}</span>
+            </div>
           </div>
 
           <div class="totais-box">
@@ -219,15 +224,15 @@ export default function ModalPedido({ isOpen, os, onClose }) {
       await api.post('/api/lembretes', {
         titulo: lembreteTitulo.trim(),
         data_lembrete: lembreteData,
-        cliente_nome: os.cliente || '',
-        cliente_telefone: '',
-        veiculo_info: `${os.veiculo || ''} ${os.ano ? `(${os.ano})` : ''} ${os.placa ? `- ${os.placa}` : ''}`.trim(),
-        ordem_id: os.id,
-        observacoes: `Agendado da OS #${os.numero_orcamento || os.id}`
+        cliente_nome: osAtual.cliente || '',
+        cliente_telefone: osAtual.telefone || '',
+        veiculo_info: `${osAtual.veiculo || ''} ${osAtual.ano ? `(${osAtual.ano})` : ''} ${osAtual.placa ? `- ${osAtual.placa}` : ''}`.trim(),
+        ordem_id: osAtual.id,
+        observacoes: `Agendado da OS #${osAtual.numero_orcamento || osAtual.id}`
       });
       showToast('Lembrete agendado com sucesso!', 'sucesso');
       setModalLembreteAberto(false);
-    } catch (err) {
+    } catch {
       showToast('Erro ao criar lembrete.', 'erro');
     } finally {
       setSalvandoLembrete(false);
@@ -237,28 +242,37 @@ export default function ModalPedido({ isOpen, os, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in duration-150">
 
-      {/* 📦 Caixa do Modal com Altura Fixada em 90% da Tela e Flexbox Vertical */}
+      {/* 📦 Caixa do Modal */}
       <div className="w-full max-w-2xl bg-white dark:bg-[#121417] border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-2xl text-zinc-900 dark:text-white max-h-[90vh] flex flex-col overflow-hidden">
 
-        {/* 📌 Cabeçalho Fixo (Nunca some com a rolagem) */}
+        {/* 📌 Cabeçalho */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-800/80 bg-white dark:bg-[#121417] shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-red-600 flex items-center justify-center shadow-lg shadow-red-600/30">
-              <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
-                <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.85 7h10.29l1.04 3H5.81l1.04-3zM19 17H5v-4.66l.12-.34h13.77l.11.34V17z" />
-                <circle cx="7.5" cy="14.5" r="1.5" />
-                <circle cx="16.5" cy="14.5" r="1.5" />
-              </svg>
+            <div className="h-10 px-2.5 py-1 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center shadow-md">
+              <img
+                src="/logo.png"
+                alt="Logo GCARS"
+                className="h-7 w-auto object-contain"
+              />
             </div>
             <div>
               <h3 className="text-sm sm:text-base font-black tracking-wide uppercase">
-                ORDEM DE SERVIÇO #{os.numero_orcamento || os.id}
+                ORDEM DE SERVIÇO #{osAtual.numero_orcamento || osAtual.id}
               </h3>
               <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Detalhes completos do atendimento</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setModalEditarAberto(true)}
+              className="bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs active:scale-95"
+              title="Editar todos os dados desta ordem de serviço"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Editar Nota</span>
+            </button>
             <button
               type="button"
               onClick={handleAbrirCriarLembrete}
@@ -286,52 +300,63 @@ export default function ModalPedido({ isOpen, os, onClose }) {
           </div>
         </div>
 
-        {/* 📜 Conteúdo Interno com Rolagem Vertical Independente */}
+        {/* 📜 Conteúdo Interno */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
 
           {/* Título e Talão */}
           <div className="flex items-start justify-between">
-            <div>
-              <h2 className="text-xl font-black italic tracking-wide">
-                G CARS REPAROS AUTOMOTIVOS
-              </h2>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Comprovante de Execução e Orçamento</p>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-zinc-950 rounded-xl border border-zinc-800 shadow-sm flex items-center justify-center">
+                <img src="/logo.png" alt="Logo GCARS" className="h-9 w-auto object-contain" />
+              </div>
+              <div>
+                <h2 className="text-lg font-black italic tracking-wide">
+                  GCARS REPAROS AUTOMOTIVOS
+                </h2>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Comprovante de Execução e Orçamento</p>
+              </div>
             </div>
             <div className="text-right">
               <span className="inline-block bg-red-600/20 border border-red-500/40 text-red-500 text-xs font-black px-2.5 py-0.5 rounded-md uppercase">
-                OS #{os.numero_orcamento || os.id}
+                OS #{osAtual.numero_orcamento || osAtual.id}
               </span>
               <span className="block text-[11px] text-zinc-500 dark:text-zinc-400 mt-1">
-                Data: {os.data}
+                Data: {osAtual.data}
               </span>
             </div>
           </div>
 
-          {/* Box Cliente & Veículo com Ano Incluído */}
+          {/* Box Cliente & Veículo */}
           <div className="bg-zinc-50 dark:bg-[#0b0c0e] border border-zinc-200 dark:border-zinc-800/90 rounded-2xl p-4 grid grid-cols-2 gap-4 text-xs">
             <div>
               <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-0.5">CLIENTE</span>
-              <span className="text-sm font-bold text-zinc-900 dark:text-white block">{os.cliente}</span>
+              <span className="text-sm font-bold text-zinc-900 dark:text-white block">{osAtual.cliente}</span>
+              {osAtual.telefone && (
+                <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block mt-0.5">{osAtual.telefone}</span>
+              )}
             </div>
 
             <div>
               <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-0.5">VEÍCULO / PLACA</span>
               <span className="text-sm font-bold text-zinc-900 dark:text-white block">
-                {os.veiculo} {os.ano ? `(${os.ano})` : ''}
+                {osAtual.veiculo} {osAtual.ano ? `(${osAtual.ano})` : ''}
               </span>
+              {osAtual.cor && (
+                <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block mt-0.5">Cor: {osAtual.cor}</span>
+              )}
             </div>
 
             <div>
               <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">MECÂNICO RESPONSÁVEL</span>
               <span className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-700 dark:text-zinc-200">
                 <User className="w-3.5 h-3.5 text-red-500" />
-                {os.mecanico || 'Não atribuído'}
+                {osAtual.mecanico || 'Não atribuído'}
               </span>
             </div>
 
             <div>
               <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">FORMA DE PAGAMENTO</span>
-              <span className="text-xs font-bold text-zinc-700 dark:text-zinc-200">{os.forma_pagamento || 'N/A'}</span>
+              <span className="text-xs font-bold text-zinc-700 dark:text-zinc-200">{osAtual.forma_pagamento || 'N/A'}</span>
             </div>
           </div>
 
@@ -358,7 +383,7 @@ export default function ModalPedido({ isOpen, os, onClose }) {
             </div>
           </div>
 
-          {/* 📷 Fotos Anexadas do Talão/Orçamento */}
+          {/* 📷 Fotos Anexadas */}
           {fotos.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
@@ -391,7 +416,7 @@ export default function ModalPedido({ isOpen, os, onClose }) {
 
         </div>
 
-        {/* 📌 Rodapé Financeiro Fixo na Base */}
+        {/* 📌 Rodapé Financeiro */}
         <div className="bg-zinc-50 dark:bg-[#0b0c0e] border-t border-zinc-200 dark:border-zinc-800/90 px-6 py-4 flex items-center justify-between text-xs shrink-0">
           <div>
             <span className="text-[10px] text-zinc-500 block uppercase font-medium">Peças:</span>
@@ -442,7 +467,7 @@ export default function ModalPedido({ isOpen, os, onClose }) {
                 </div>
                 <div>
                   <h4 className="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-wider">
-                    Agendar Lembrete da OS #{os.numero_orcamento || os.id}
+                    Agendar Lembrete da OS #{osAtual.numero_orcamento || osAtual.id}
                   </h4>
                   <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
                     O sistema avisará na data para chamar o cliente
@@ -477,12 +502,12 @@ export default function ModalPedido({ isOpen, os, onClose }) {
               <div className="p-3 bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-200 dark:border-zinc-800 text-[11px] space-y-1">
                 <div>
                   <span className="text-zinc-400 font-bold">Cliente: </span>
-                  <strong className="text-zinc-800 dark:text-zinc-200">{os.cliente || 'Não informado'}</strong>
+                  <strong className="text-zinc-800 dark:text-zinc-200">{osAtual.cliente || 'Não informado'}</strong>
                 </div>
                 <div>
                   <span className="text-zinc-400 font-bold">Veículo: </span>
                   <span className="text-zinc-800 dark:text-zinc-200">
-                    {os.veiculo} {os.ano ? `(${os.ano})` : ''} {os.placa ? `• ${os.placa}` : ''}
+                    {osAtual.veiculo} {osAtual.ano ? `(${osAtual.ano})` : ''} {osAtual.placa ? `• ${osAtual.placa}` : ''}
                   </span>
                 </div>
               </div>
@@ -547,6 +572,20 @@ export default function ModalPedido({ isOpen, os, onClose }) {
           </div>
         </div>
       )}
+
+      {/* ✏️ Modal de Edição Completa da OS */}
+      {modalEditarAberto && (
+        <ModalEditarOS
+          isOpen={modalEditarAberto}
+          os={osAtual}
+          onClose={() => setModalEditarAberto(false)}
+          onSaved={(novaOs) => {
+            setOsAtual(novaOs);
+            if (onUpdate) onUpdate(novaOs);
+          }}
+        />
+      )}
+
     </div>
   );
 }

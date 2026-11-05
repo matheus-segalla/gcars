@@ -196,18 +196,16 @@ export default function LandingPage() {
       {/* 🚀 Header Principal */}
       <header className="border-b border-zinc-800/80 bg-zinc-950/90 backdrop-blur-md sticky top-[37px] z-30">
         <div className="max-w-7xl mx-auto px-4 py-3.5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-br from-red-600 to-red-700 p-2.5 rounded-xl text-white shadow-lg shadow-red-600/30">
-              <Car className="w-6 h-6 stroke-[2.5]" />
-            </div>
-            <div>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-2xl font-black italic tracking-wider text-white">G CARS</span>
-                <span className="text-[10px] font-black text-red-500 tracking-wider uppercase bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20">Desde 2017</span>
-              </div>
-              <p className="text-[10px] font-bold text-zinc-400 tracking-widest uppercase">Reparos Automotivos</p>
-            </div>
-          </div>
+          <a href="#inicio" className="flex items-center gap-3 group">
+            <img
+              src="/logo.png"
+              alt="Logo Oficial GCARS Reparos Automotivos"
+              className="h-10 sm:h-12 w-auto object-contain drop-shadow-md group-hover:scale-105 transition-transform"
+            />
+            <span className="hidden sm:inline-block text-[10px] font-black text-red-500 tracking-wider uppercase bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20">
+              Desde 2017
+            </span>
+          </a>
 
           <nav className="hidden lg:flex items-center gap-6 text-xs font-semibold text-zinc-300">
             <a href="#inicio" className="hover:text-red-400 transition">Início</a>
@@ -846,8 +844,12 @@ export default function LandingPage() {
       <footer className="mt-auto border-t border-zinc-800/80 bg-zinc-950 py-10 text-xs text-zinc-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="space-y-1 text-center sm:text-left">
-            <div className="flex items-center justify-center sm:justify-start gap-2">
-              <Car className="w-4 h-4 text-red-500" />
+            <div className="flex items-center justify-center sm:justify-start gap-3">
+              <img
+                src="/logo.png"
+                alt="Logo GCARS"
+                className="h-7 w-auto object-contain"
+              />
               <span className="font-bold text-zinc-200">GCARS Reparos Automotivos</span>
               <span className="text-zinc-400">• Desde 2017</span>
             </div>

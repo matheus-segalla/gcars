@@ -16,10 +16,18 @@ class AtualizarCustoSchema(BaseModel):
     custo: float = 0.0
 
 
+class LembreteInlineCreate(BaseModel):
+    titulo: str
+    data_lembrete: str  # YYYY-MM-DD
+    cliente_telefone: Optional[str] = None
+    observacoes: Optional[str] = None
+
+
 class OrdemServicoCreate(BaseModel):
     numero: str
     data: str
     cliente: str
+    telefone: Optional[str] = None
     veiculo: str
     placa: Optional[str] = None
     cor: Optional[str] = None
@@ -32,14 +40,17 @@ class OrdemServicoCreate(BaseModel):
     servicos: Optional[List[str]] = []
     fotos: Optional[List[str]] = []
     funcionario_id: Optional[int] = None
+    lembrete: Optional[LembreteInlineCreate] = None
 
 
 class OrdemServicoUpdate(BaseModel):
     numero: Optional[str] = None
     data: Optional[str] = None
     cliente: Optional[str] = None
+    telefone: Optional[str] = None
     veiculo: Optional[str] = None
     placa: Optional[str] = None
+    cor: Optional[str] = None
     km: Optional[str] = None
     ano: Optional[str] = None
     forma_pagamento: Optional[str] = None
@@ -50,6 +61,7 @@ class OrdemServicoUpdate(BaseModel):
     valor_pago: Optional[float] = 0.0
     custo: Optional[float] = 0.0
     servicos: Optional[List[str]] = []
+    fotos: Optional[List[str]] = None
 
 
 class LembreteCreate(BaseModel):
