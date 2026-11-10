@@ -12,9 +12,22 @@ router = APIRouter(prefix="/api/auth", tags=["Autenticação"])
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@gcars.com.br")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "gcars@2026")
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip().rstrip("/")
-if SUPABASE_URL and not SUPABASE_URL.startswith(("http://", "https://")):
-    SUPABASE_URL = f"https://{SUPABASE_URL}"
+def _formatar_supabase_url(url: str) -> str:
+    u = (url or "").strip().rstrip("/")
+    if not u:
+        return ""
+    if "://" in u:
+        proto, host = u.split("://", 1)
+        if "." not in host:
+            return f"{proto}://{host}.supabase.co"
+        return f"{proto}://{host}"
+    else:
+        if "." not in u:
+            return f"https://{u}.supabase.co"
+        return f"https://{u}"
+
+
+SUPABASE_URL = _formatar_supabase_url(os.getenv("SUPABASE_URL", ""))
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "").strip()
 
 
