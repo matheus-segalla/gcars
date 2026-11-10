@@ -12,19 +12,20 @@ router = APIRouter(prefix="/api/auth", tags=["Autenticação"])
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@gcars.com.br")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "gcars@2026")
 
+from urllib.parse import urlparse
+
+
 def _formatar_supabase_url(url: str) -> str:
     u = (url or "").strip().rstrip("/")
     if not u:
         return ""
-    if "://" in u:
-        proto, host = u.split("://", 1)
-        if "." not in host:
-            return f"{proto}://{host}.supabase.co"
-        return f"{proto}://{host}"
-    else:
-        if "." not in u:
-            return f"https://{u}.supabase.co"
-        return f"https://{u}"
+    if not u.startswith(("http://", "https://")):
+        u = f"https://{u}"
+    parsed = urlparse(u)
+    netloc = parsed.netloc or parsed.path
+    if "." not in netloc:
+        netloc = f"{netloc}.supabase.co"
+    return f"https://{netloc}"
 
 
 SUPABASE_URL = _formatar_supabase_url(os.getenv("SUPABASE_URL", ""))
