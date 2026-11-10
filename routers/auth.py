@@ -19,13 +19,17 @@ def _formatar_supabase_url(url: str) -> str:
     u = (url or "").strip().rstrip("/")
     if not u:
         return ""
+    u = u.strip("\"' ")
     if not u.startswith(("http://", "https://")):
         u = f"https://{u}"
     parsed = urlparse(u)
-    netloc = parsed.netloc or parsed.path
-    if "." not in netloc:
-        netloc = f"{netloc}.supabase.co"
-    return f"https://{netloc}"
+    host = parsed.hostname or parsed.netloc or parsed.path or ""
+    host = host.split(":")[0].strip().rstrip("/")
+    if not host:
+        return ""
+    if "supabase.co" not in host:
+        host = f"{host}.supabase.co"
+    return f"https://{host}"
 
 
 SUPABASE_URL = _formatar_supabase_url(os.getenv("SUPABASE_URL", ""))
