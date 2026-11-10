@@ -45,7 +45,9 @@ Devolva SOMENTE um JSON válido sem marcações markdown:
 async def upload_para_supabase(
     file_bytes: bytes, filename: str, content_type: str
 ) -> str:
-    supabase_url = os.getenv("SUPABASE_URL", "").rstrip("/")
+    supabase_url = os.getenv("SUPABASE_URL", "").strip().rstrip("/")
+    if supabase_url and not supabase_url.startswith(("http://", "https://")):
+        supabase_url = f"https://{supabase_url}"
     supabase_key = os.getenv("SUPABASE_KEY", "").strip()
     bucket_name = "taloes"
 

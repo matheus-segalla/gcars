@@ -12,7 +12,9 @@ router = APIRouter(prefix="/api/auth", tags=["Autenticação"])
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@gcars.com.br")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "gcars@2026")
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip().rstrip("/")
+if SUPABASE_URL and not SUPABASE_URL.startswith(("http://", "https://")):
+    SUPABASE_URL = f"https://{SUPABASE_URL}"
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "").strip()
 
 
@@ -62,6 +64,8 @@ def login(dados: LoginSchema):
                         "nome": nome_user,
                     },
                 }
+            else:
+                print(f"⚠️ Supabase Auth falhou ({res.status_code}): {res.text}")
         except Exception as e:
             print("⚠️ Erro ao consultar Supabase Auth:", e)
 
